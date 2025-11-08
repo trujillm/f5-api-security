@@ -257,7 +257,21 @@ curl -sS http://vllm-quantized.volt.thebizdevops.net/v1/openai/v1/chat/completio
 The deployment successfully sets up the F5-API-Security QuickStart environment on OpenShift, installs the Helm chart, and exposes model endpoints that can be verified using standard API calls.
 
 ---
+---
 
+## Next Steps: Deploying and Securing (Steps 2 & 3)
+
+With the core AI baseline deployed, proceed to the detailed guides for configuring the F5 Distributed Cloud components and running security use cases:
+
+### Step 2: Deploy F5 Distributed Cloud
+Configure the F5 Distributed Cloud components and integrate the LLM endpoint.  
+➡️ [Deployment and Configuration of F5 Distributed Cloud](docs/f5_xc_deployment.md)
+
+### Step 3: Configure and Run Use Cases for F5 Distributed Cloud
+Run security testing to demonstrate how F5 API Security protects the deployed model inference services.  
+➡️ [Security Use Cases and Testing](docs/securing_model_inference_use_cases.md)
+
+---
 
 
 
