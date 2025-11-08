@@ -257,7 +257,6 @@ curl -sS http://vllm-quantized.volt.thebizdevops.net/v1/openai/v1/chat/completio
 The deployment successfully sets up the F5-API-Security QuickStart environment on OpenShift, installs the Helm chart, and exposes model endpoints that can be verified using standard API calls.
 
 ---
----
 
 ## Next Steps: Deploying and Securing (Steps 2 & 3)
 
