@@ -127,34 +127,8 @@ List minimum hardware requirements.
 Note: the 70B model is NOT required for initial testing of this example. The safety/shield model `Llama-Guard-3-8B` is also optional.
 
 ### Installation Steps
-## Installation Steps
 
-The following steps detail the deployment process used, involving cloning the repository, navigating to the deployment directory, and running the `deploy.sh` script, which handles Helm chart installation and project creation [1].
-
-### 1. Login to OpenShift
-
-# F5 API Security Deployment Guide for AI Inference Endpoints
-
-Based on the "F5 API Security Deployment and LLM Testing" sources, this updated sequence details the actual deployment steps that would replace the placeholder content in the `README.md` file for the `F5-API-Security` repository [1].
-
-## Installation Steps
-
-The following steps detail the deployment process used, involving cloning the repository, navigating to the deployment directory, and running the `deploy.sh` script, which handles Helm chart installation and project creation [1].
-
-### 1. Login to OpenShift
-
-
-# F5-API-Security Deployment Guide
-
-This document provides the step-by-step process to deploy the **F5-API-Security** QuickStart on Red Hat OpenShift. It includes repository setup, configuration, Helm-based deployment, and post-deployment verification.
-
----
-
-## Installation Steps
-
-The deployment process involves cloning the repository, navigating to the deployment directory, and executing the `deploy.sh` script, which manages Helm chart installation and project creation.
-
-### 1. Login to OpenShift
+#### 1. Login to OpenShift
 
 Log in to your OpenShift cluster using your token and API endpoint:
 
@@ -166,7 +140,7 @@ oc login --token=<your_sha256_token> --server=<cluster-api-endpoint>
 
 ---
 
-### 2. Clone the Repository
+#### 2. Clone the Repository
 
 Clone the F5-API-Security repository:
 
@@ -178,7 +152,7 @@ git clone https://github.com/rh-ai-quickstart/F5-API-Security
 
 ---
 
-### 3. Navigate to Deployment Directory
+#### 3. Navigate to Deployment Directory
 
 Change into the cloned repository and then into the `deploy` folder:
 
@@ -191,7 +165,7 @@ cd deploy
 
 ---
 
-### 4. Configure and Deploy
+#### 4. Configure and Deploy
 
 Execute the deployment script:
 
@@ -233,11 +207,11 @@ Deployment complete!
 
 ---
 
-## Post-Deployment Verification (Optional)
+### Post-Deployment Verification (Optional)
 
 Once deployed, you can verify that the model endpoints are running correctly using `curl`.
 
-### Check Deployed Models (LlamaStack Endpoint)
+### #Check Deployed Models (LlamaStack Endpoint)
 
 ```bash
 curl -sS http://llamastack-f5-ai-security.apps.gpu-ai.bd.f5.com/v1/models
@@ -247,7 +221,7 @@ curl -sS http://llamastack-f5-ai-security.apps.gpu-ai.bd.f5.com/v1/models
 
 ---
 
-### Test Chat Completion (LlamaStack Endpoint)
+#### Test Chat Completion (LlamaStack Endpoint)
 
 ```bash
 curl -sS http://llamastack-f5-ai-security.apps.gpu-ai.bd.f5.com/v1/openai/v1/chat/completions   -H "Content-Type: application/json"   -d '{
@@ -263,7 +237,7 @@ curl -sS http://llamastack-f5-ai-security.apps.gpu-ai.bd.f5.com/v1/openai/v1/cha
 
 ---
 
-### Test Chat Completion (Secured vLLM Endpoint)
+#### Test Chat Completion (Secured vLLM Endpoint)
 
 ```bash
 curl -sS http://vllm-quantized.volt.thebizdevops.net/v1/openai/v1/chat/completions   -H "Content-Type: application/json"   -d '{
@@ -278,7 +252,7 @@ curl -sS http://vllm-quantized.volt.thebizdevops.net/v1/openai/v1/chat/completio
 
 ---
 
-## Summary
+#### Summary
 
 The deployment successfully sets up the F5-API-Security QuickStart environment on OpenShift, installs the Helm chart, and exposes model endpoints that can be verified using standard API calls.
 
