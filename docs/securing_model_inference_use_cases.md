@@ -1,144 +1,163 @@
+# Securing AI Model Inference Endpoints with F5 Distributed Cloud WAAP
 
-# Securing Model Inference Use Cases with F5 Distributed Cloud API Security
+This lab guides you through configuring **F5 Distributed Cloud (XC) Web Application and API Protection (WAAP)** features to secure a Generative AI model inference endpoint (represented by `llamastack.f5-ai-security` running in a vK8s environment).
 
-This document outlines the configuration and testing procedures for securing Generative AI model inference endpoints deployed in complex environments like **Red Hat OpenShift AI (on ROSA)**, leveraging **F5 Distributed Cloud (XC) Web Application and API Protection (WAAP)** capabilities. The objective of every use case detailed below is to secure the inference endpoint from unauthorized access, prompt manipulation, and resource exhaustion.
+**Objective:** Secure the inference endpoint from prompt injection, shadow APIs, sensitive data leakage, and automated attacks.
+
+---
+
+## 🧩 Prerequisites
+
+- Operational **F5 Distributed Cloud Account** and Console access  
+- **kubectl** installed locally
 
 ---
 
 ## Step 0: Initial Load Balancer Configuration and Inference Endpoint Verification
 
-Before applying specific security controls, the model inference service must be advertised via an **F5 Distributed Cloud HTTP Load Balancer (LB)** using **Origin Pools**.
+This step ensures the model serving application is exposed via an F5 Distributed Cloud HTTP Load Balancer (LB).
 
-### 1. Ensure F5XC Site Operational
-Verify that the F5 Distributed Cloud site (or vK8s cluster) hosting the model service is operational.
+### Task 0.1: Create vK8s Cluster and Deploy Application
 
-### 2. Set up the HTTP Load Balancer
-- Navigate to the **Multi-Cloud App Connect** service, then select **HTTP Load Balancers**.
-- Click **Add HTTP Load Balancer** and provide a name and domain (e.g., `vllm-quantized.volt.thebizdevops.net`).
+1. **Create vK8s Cluster:**  
+   - Log into the F5 Distributed Cloud Console  
+   - Navigate to **Distributed Apps → Virtual K8s**  
+   - Click **Add Virtual K8s** and name your cluster  
+   - Assign **Virtual Sites** → check `ves-io-all-res`  
+   - Click **Save and Exit** (wait ~1 min for creation)
 
-### 3. Configure the Origin Pool
-- Click **Add Item** to create a new Origin Pool.
-- Add an **Origin Server**: Select **K8s Service Name of Origin Server on given Sites**.
-- Specify the service name corresponding to `llamastack.f5-ai-security` (using the format `servicename.namespace` if applicable, or select the relevant k8s service).
-- Select the **Virtual Site type** as `shared/ves-io-all-res` and specify the appropriate **Port** (e.g., `8080` or the specific port the LLM stack listens on).
-- **Save and Exit** the Origin Pool and HTTP Load Balancer.
+2. **Download Kubeconfig:**  
+   - From the new vK8s cluster dropdown → select **Kubeconfig** to download credentials.
+
+3. **Deploy the Inference Service:**  
+   - Use `kubectl` and the provided `vk8s-manifest.yaml` (containing deployment for AI inference service `llamastack.f5-ai-security`).
+
+### Task 0.2: Set up the HTTP Load Balancer
+
+1. Navigate to **Multi-Cloud App Connect → HTTP Load Balancers**  
+2. Click **Add HTTP Load Balancer**
+   - **Name:** `ai-inference-lb`  
+   - **Domain Name:** `vllm-quantized.volt.thebizdevops.net`
+3. **Configure Origin Pool:**
+   - Add Item → name the pool  
+4. **Configure Origin Server:**
+   - Type: *K8s Service Name of Origin Server on given Sites*  
+   - Service Name: `llamastack.f5-ai-security.yournamespace`  
+   - Virtual Site Type: `shared/ves-io-all-res`  
+   - Network: `vK8s Network on Site`  
+   - Port: `8080`
+5. **Save LB:** Continue → Apply → Save and Exit. Record the generated **CNAME**.
 
 ### Verification of Inference Endpoint Access
-
-Once the LB is saved, verify that the inference endpoint is correctly exposed:
 
 ```bash
 curl -sS http://vllm-quantized.volt.thebizdevops.net//v1/openai/v1/models | jq
 ```
-
-**Expected Output:**
-
+Expected Output:
 ```json
 {
   "data": [
-    {
-      "id": "remote-llm/RedHatAI/Llama-3.2-1B-Instruct-quantized.w8a8",
-      "object": "model",
-      "created": 1762644418,
-      "owned_by": "llama_stack"
-    },
-    {
-      "id": "sentence-transformers/all-MiniLM-L6-v2",
-      "object": "model",
-      "created": 1762644418,
-      "owned_by": "llama_stack"
-    }
+    {"id": "remote-llm/RedHatAI/Llama-3.2-1B-Instruct-quantized.w8a8", "object": "model", "owned_by": "llama_stack"},
+    {"id": "sentence-transformers/all-MiniLM-L6-v2", "object": "model", "owned_by": "llama_stack"}
   ]
 }
 ```
+📸 *[Insert Screenshot 1: Load Balancer Verification (Curl Output)]*
 
 ---
 
-## Use Case 1: Protecting the Inference Endpoint Against Prompt Manipulation and Injection Attacks
+## 🧱 Use Case 1: Protecting Against Prompt Manipulation and Injection Attacks (WAF & MUD)
 
-Model inference endpoints that accept user prompts are susceptible to injection attacks (like **Cross-Site Scripting or SQLi**), often referred to as **prompt injection or manipulation**. The **Web Application Firewall (WAF)** inspects requests and responses using signatures and behavioral-based threat detection to block these risks.
+The Web Application Firewall (WAF) is deployed to block input manipulation (prompt injection) and conventional injection attacks (XSS, SQLi) targeting the inference endpoint. Malicious User Detection (MUD) provides behavioral analysis.
 
-### Detailed Configuration Steps (WAF)
+### Task 1.1: Enable and Configure WAF Policy
 
-1. **Access LB Configuration**: Navigate to **Web App & API Protection > HTTP Load Balancers**. Select the LB → **Manage Configuration** → **Edit Configuration**.  
-2. **Enable App Firewall**: In the **Web Application Firewall** section, enable it and click **Add Item** to configure a new WAF object.  
-3. **Set Enforcement Mode**: Set to **Blocking**.  
-4. **Customize Detection Settings**: Select **Custom** to override defaults.  
-5. **Configure Attack Types**: Disable specific attack types (optional).  
-6. **Set Signature Accuracy**: Enable **High**, **Medium**, and **Low**.  
-7. **Define Blocking Response**: Choose **Custom** → `403 Forbidden`.  
-8. **Save Configuration**.  
+1. Edit LB → **Web App & API Protection → HTTP Load Balancers → Manage Configuration → Edit Configuration**  
+2. In **Web Application Firewall**, enable **App Firewall** → click **Add Item**  
+3. Configure:  
+   - **Mode:** Blocking  
+   - **Detection:** Custom  
+   - **Signatures:** High, Medium, Low accuracy  
+   - **Response:** Custom `403 Forbidden`  
+   - (WAF automatically filters sensitive fields like `card` or `password` from logs.)  
+4. Click **Save and Exit**
 
-### Traffic Generation and Confirmation
+### Task 1.2: Traffic Generation and WAF Confirmation
 
-- Run a test request with injection payloads:  
-  ```bash
-  curl -X POST http://vllm-quantized.volt.thebizdevops.net/v1/chat/completions     -H "Content-Type: application/json"     -d '{"prompt": "' OR 1=1 --"}'
-  ```
+1. Use the [Test Tool](https://test-tool.sr.f5-cloud-demo.com).  
+   - Paste LB CNAME and **SEND ATTACKS** → vulnerable before WAF  
+   - Inject prompt via `/v1/chat/completions` → attack passes
+2. After enabling WAF → click **SEND ATTACKS** again  
+   - All attacks should be blocked
 
-- Expected response: `403 Forbidden`
-- Check **Security Dashboard > Security Events** for WAF logs.
-- To block repeat offenders, use **Add to Blocked Clients** under **Malicious User Detection (MUD)**.
+📸 *[Insert Screenshot 2: Test Tool Confirmation of Blocked WAF Attacks]*
 
----
+### Task 1.3: Review Security Analytics and MUD
 
-## Use Case 2: Enforcing API Specification and Preventing Shadow APIs
+1. Navigate to **Dashboards → Security Dashboard**  
+2. Explore **Security Analytics → Attack details (e.g., Java injection)**  
+3. Use **Add to Blocked Clients** to apply **MUD** (ML-based user blocking).
 
-**API Protection** secures inference endpoints using a defined **OpenAPI (Swagger)** specification. **API Discovery** uses ML to detect shadow APIs and sensitive data exposure.
-
-### Detailed Configuration Steps (API Protection)
-
-1. **Upload Swagger File** → `Swagger Files > Add Swagger File`.  
-2. **Create API Definition** → `API Definition > Add` → attach Swagger spec.  
-3. **Attach Definition to LB** → `Edit Configuration > API Protection`.  
-4. **Create Service Policy** → under **Common Security Controls > Apply Specified Service Policies**:  
-   - **Rule 1 (Deny Non-API)**:  
-     - Action: **Deny**  
-     - Path: `/v1/`  
-     - **Invert String Matcher** = true (blocks undocumented paths).  
-   - **Rule 2 (Allow Other)**: Action = **Allow**  
-5. **Save Configuration**.
-
-### Traffic Generation and Confirmation
-
-- Generate legitimate API traffic (e.g., via Swagger UI or Postman).
-- Attempt to access undocumented path → access should be forbidden.
-- Review **API Discovery Dashboard** for new and shadow APIs.
+📸 *[Insert Screenshot 3: Security Analytics Dashboard Showing Blocked Event]*
 
 ---
 
-## Use Case 3: Mitigating Automated Attack Traffic and Excessive Requests
+## 🧾 Use Case 2: Enforcing API Specification, Sensitive Data Detection, and Preventing Shadow APIs
 
-Inference endpoints must be protected from **resource exhaustion** and **bot traffic**.
+This use case enforces documented API access only and uses **API Discovery** for continuous visibility.
 
-### Detailed Configuration Steps (Bot Protection)
+### Task 2.1: Upload API Specification
 
-1. **Enable Bot Defense** → in **HTTP LB > Edit Configuration** → **Bot Protection**.  
-2. Add **App Endpoint**: Path `/v1/chat/completions`, methods `PUT`, `POST`.  
-3. **Mitigation Action**: **Block (403)**.  
-4. **Save Configuration**.
+1. Go to **Swagger Files → Add Swagger File** → name it → upload OpenAPI spec → Save  
+2. Go to **API Definition → Add API Definition** → select uploaded spec → Save
 
-### Detailed Configuration Steps (Rate Limiting and DDoS)
+### Task 2.2: Apply API Protection and Deny Shadow APIs
 
-1. **Enable IP Reputation** → choose threat categories (Spam, DoS, Tor, Botnets).  
-2. **Configure Rate Limiting** → 10 requests/sec, burst multiplier 5.  
-3. **Add DDoS Rule** → block IP `203.0.113.0/24`.  
-4. **Save Configuration**.
+1. Edit LB → enable **API Definition** and select your definition  
+2. Under **Common Security Controls**, choose **Apply Specified Service Policies**  
+3. Add Custom Rules:  
+   - **Rule 1:** Deny traffic not matching `/v1/` (invert string matcher)  
+   - **Rule 2:** Allow all others  
+4. Save and Exit
 
-### Traffic Generation and Confirmation
+*(Note: If “exhausted limits” error appears, request API schema limit increase via support.)*
 
-- Simulate bots via Python scripts or load tests (`ab`, `wrk`, etc.).  
-- Observe **403 Forbidden** for blocked requests.  
-- Review **Bot Defense** and **DDoS** analytics dashboards for events.
+### Task 2.3: Traffic Generation and API Confirmation
+
+1. Access LLM docs endpoint → execute API calls and try undocumented paths  
+2. Before policy: vulnerable; after policy: protected  
+3. Review **API Discovery Dashboard** for detected endpoints and sensitive data
+
+📸 *[Insert Screenshot 4: API Discovery Dashboard Highlighting Sensitive Data or Shadow APIs]*
 
 ---
 
-## Analogy
+## ⚙️ Use Case 3: Mitigating Automated Attack Traffic and Excessive Requests (Bot/DDoS/Rate Limiting)
 
-Securing a model inference endpoint with F5 Distributed Cloud is like protecting a **high-security vault** housing your **LLM**:
+This protects inference endpoints from resource exhaustion and denial of service.
 
-- **WAF**: Acts as biometric scanner and metal detector.  
-- **API Protection**: Ensures only documented doors (API paths) are accessible.  
-- **Bot Defense / Rate Limiting**: Crowd control, preventing overload by malicious actors.
+### Task 3.1: Configure Bot Protection
 
-Together, they create a layered, intelligent security system ensuring **only legitimate, well-formed requests** reach your AI model.
+1. Edit LB → **Bot Protection → Enable → Configure**  
+2. Add App Endpoint:  
+   - Methods: PUT, POST  
+   - Path: `/api/v1/`  
+   - Mitigation: Block (403)  
+3. Save and Exit
+
+### Task 3.2: Configure Rate Limiting and DDoS Protection
+
+1. Enable **IP Reputation:** categories – Spam, DoS, Proxy, Tor, Botnets  
+2. Configure **Rate Limiting:**  
+   - Number: `10` requests  
+   - Burst Multiplier: `5`  
+3. Enable **DDoS Protection:**  
+   - Add IP Source Rule → block `203.0.113.0/24`
+
+### Task 3.3: Traffic Generation and Confirmation
+
+1. Simulate bot traffic using Test Tool or `ab` load tests  
+2. Before: traffic passes; after: blocked  
+3. Review **Security Dashboard → Bot Defense & DDoS Tabs** for analytics
+
+📸 *[Insert Screenshot 5: Bot Defense Dashboard Showing Blocked Traffic]*
