@@ -1,63 +1,39 @@
+<!-- omit from toc -->
 # Securing Model Inference with F5 Distributed Cloud API Security
 
-<!-- CONTRIBUTOR TODO: update title ^^
-
-*replace the H1 title above with your quickstart title*
-
-TITLE requirements:
-	* MAX CHAR: 64 
-	* Industry use case, ie: Protect patient data with LLM guardrails
-
-TITLE will be extracted for publication.
-
--- > 
-
-
-
-<!-- CONTRIBUTOR TODO: short description 
-
-*ADD a SHORT DESCRIPTION of your use case between H1 title and next section*
-
-SHORT DESCRIPTION requirements:
-	* MAX CHAR: 160
-	* Describe the INDUSTRY use case 
-
-SHORT DESCRIPTION will be extracted for publication.
-
---> 
-
-
+<!-- omit from toc -->
 ## Table of contents
 
-- [Securing Model Inference with F5 Distributed Cloud API Security](#securing-model-inference-with-f5-distributed-cloud-api-security)
-  - [Table of contents](#table-of-contents)
-  - [Detailed description](#detailed-description)
-    - [Architecture diagrams](#architecture-diagrams)
-  - [Requirements](#requirements)
-    - [Minimum hardware requirements](#minimum-hardware-requirements)
-    - [Minimum software requirements](#minimum-software-requirements)
-    - [Required user permissions](#required-user-permissions)
-  - [Deploy](#deploy)
-    - [Prerequisites](#prerequisites)
-    - [Supported Models](#supported-models)
-  - [Deploying the Quickstart Baseline (Step 1)](#deploying-the-quickstart-baseline-step-1)
-    - [Installation Steps](#installation-steps)
-      - [1. Login to OpenShift](#1-login-to-openshift)
-      - [2. Clone the Repository](#2-clone-the-repository)
-      - [3. Navigate to Deployment Directory](#3-navigate-to-deployment-directory)
-      - [4. Configure and Deploy](#4-configure-and-deploy)
-    - [Post-Deployment Verification (Optional)](#post-deployment-verification-optional)
-    - [#Check Deployed Models (LlamaStack Endpoint)](#check-deployed-models-llamastack-endpoint)
-      - [Test Chat Completion (LlamaStack Endpoint)](#test-chat-completion-llamastack-endpoint)
-      - [Test Chat Completion (Secured vLLM Endpoint)](#test-chat-completion-secured-vllm-endpoint)
-      - [Summary](#summary)
-  - [Next Steps: Deploying and Securing (Steps 2 \& 3)](#next-steps-deploying-and-securing-steps-2--3)
-    - [Step 2: Deploy F5 Distributed Cloud](#step-2-deploy-f5-distributed-cloud)
-    - [Step 3: Configure and Run Use Cases for F5 Distributed Cloud](#step-3-configure-and-run-use-cases-for-f5-distributed-cloud)
-    - [Delete](#delete)
-  - [References](#references)
-  - [Technical details](#technical-details)
-  - [Tags](#tags)
+<!-- TOC depthFrom:2 depthTo:3 -->
+- [Detailed description](#detailed-description)
+  - [Architecture diagrams](#architecture-diagrams)
+- [Requirements](#requirements)
+  - [Minimum hardware requirements](#minimum-hardware-requirements)
+  - [Minimum software requirements](#minimum-software-requirements)
+  - [Required user permissions](#required-user-permissions)
+- [Deploy](#deploy)
+  - [Prerequisites](#prerequisites)
+  - [Supported Models](#supported-models)
+- [Deploying the Quickstart Baseline (Step 1)](#deploying-the-quickstart-baseline-step-1)
+  - [Installation Steps](#installation-steps)
+    - [1. Login to OpenShift](#1-login-to-openshift)
+    - [2. Clone the Repository](#2-clone-the-repository)
+    - [3. Navigate to Deployment Directory](#3-navigate-to-deployment-directory)
+    - [4. Configure and Deploy](#4-configure-and-deploy)
+  - [Post-Deployment Verification (Optional)](#post-deployment-verification-optional)
+  - [Check Deployed Models (LlamaStack Endpoint)](#check-deployed-models-llamastack-endpoint)
+    - [Test Chat Completion (LlamaStack Endpoint)](#test-chat-completion-llamastack-endpoint)
+    - [Test Chat Completion (Secured vLLM Endpoint)](#test-chat-completion-secured-vllm-endpoint)
+    - [Summary](#summary)
+- [Next Steps: Deploying and Securing (Steps 2 \& 3)](#next-steps-deploying-and-securing-steps-2--3)
+  - [Step 2: Deploy F5 Distributed Cloud](#step-2-deploy-f5-distributed-cloud)
+  - [Step 3: Configure and Run Use Cases for F5 Distributed Cloud](#step-3-configure-and-run-use-cases-for-f5-distributed-cloud)
+- [Delete](#delete)
+- [References](#references)
+- [Technical details](#technical-details)
+- [Tags](#tags)
+
+<!-- /TOC -->
 
 
 ## Detailed description
@@ -229,7 +205,7 @@ Deployment complete!
 
 Once deployed, you can verify that the model endpoints are running correctly using `curl`.
 
-### #Check Deployed Models (LlamaStack Endpoint)
+### Check Deployed Models (LlamaStack Endpoint)
 
 ```bash
 curl -sS http://llamastack-f5-ai-security.apps.gpu-ai.bd.f5.com/v1/models
@@ -292,7 +268,7 @@ Run security testing to demonstrate how F5 API Security protects the deployed mo
 
 
 
-### Delete
+## Delete
 
 <!-- CONTRIBUTOR TODO: add uninstall instructions
 
