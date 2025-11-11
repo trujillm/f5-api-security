@@ -166,16 +166,17 @@ Attach a pre-built WAF policy to the HTTP Load Balancer fronting the vLLM servic
 
 4. **Enable WAF**  
    From the left navigation, select **Web Application Firewall**.
+![Load balancer WAF](images/ericji-gpu-ai-vllm-lb2.png)
 
-5. **Select WAF Object**  
-   Toggle **Enable** for the Web Application Firewall, then choose the shared WAF object (for example `shared/api-lab-af`) from the WAF dropdown.
-
+1. **Create a new WAF Object**  
+   Toggle **Enable** for the Web Application Firewall, then create a new WAF object (for example `waf-ericji-vllm`)
+![WAF policy](images/waf-ericji-vllm.png)
    - **Note:** In lab environments, settings such as *Suspicious* or *Good Bot* are sometimes set to *Ignore* to reduce false positives.
 
-6. **Save Changes**  
+1. **Save Changes**  
    Go to **Other Settings** (left navigation), then click **Save and Exit**.
 
-![WAF policy](images/waf-ericji-vllm.png)
+
 
 ---
 
