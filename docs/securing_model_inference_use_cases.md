@@ -144,7 +144,7 @@ In this task you will simulate an XSS attack against the unprotected LLM endpoin
 > Replace `model` and other fields with the values required by your deployment if different.
 4. **Execute the Attack**  
    Click **Execute** in Swagger UI.
-   
+
 5. **Review Unmitigated Result**  
    Inspect the **Server Response**. If the response body contains the injected `<script>` (or the script is rendered), the endpoint is vulnerable to XSS.
 
@@ -217,13 +217,19 @@ Verify the WAF policy successfully blocks the XSS injection.
 Below is an example `curl` command that sends the same malicious payload directly to the inference endpoint (use only in controlled/test environments):
 
 ```bash
-curl -X POST "http://vllm-quantized.volt.thebizdevops.net/v1/inference/chat-completion" \
-  -H "Content-Type: application/json" \
+curl -X 'POST' 'http://vllm-quantized.volt.thebizdevops.net/v1/inference/chat-completion' \
+  -H 'Content-Type: application/json' \
   -d '{
-    "model": "gpt-example",
-    "messages": [{"role":"user","content":"<script>alert(\"XSS\")</script> Please summarize the above."}],
-    "max_tokens": 50
-  }'
+        "model_id": "RedHatAI/Llama-3.2-1B-Instruct-quantized.w8a8",
+        "messages": [
+          {
+            "role": "user",
+            "content": "What is F5 API security? <script>alert(\"XSS\")</script>",
+            "context": "Injection test"
+          }
+        ],
+          "max_tokens": 50
+      }' | jq
 ```
 
 ---
