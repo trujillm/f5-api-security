@@ -94,39 +94,144 @@ Expected Output:
 
 ---
 
-## 🧱 Use Case 1: Protecting Against Prompt Manipulation and Injection Attacks (WAF & MUD)
+## 🧱 Use Case 1 — Protecting the vLLM Inference Endpoint using WAF
 
-The Web Application Firewall (WAF) is deployed to block input manipulation (prompt injection) and conventional injection attacks (XSS, SQLi) targeting the inference endpoint. Malicious User Detection (MUD) provides behavioral analysis.
+**Scenario:** The LLM inference endpoint is susceptible to dynamic attacks, such as Cross‑Site Scripting (XSS), which could allow malicious scripts to be rendered and executed, posing an unacceptable security risk. This guide shows how to use the F5 Distributed Cloud (XC) Web Application Firewall (WAF) to mitigate the vulnerability.
 
-### Task 1.1: Enable and Configure WAF Policy
+---
 
-1. Edit LB → **Web App & API Protection → HTTP Load Balancers → Manage Configuration → Edit Configuration**  
-2. In **Web Application Firewall**, enable **App Firewall** → click **Add Item**  
-3. Configure:  
-   - **Mode:** Blocking  
-   - **Detection:** Custom  
-   - **Signatures:** High, Medium, Low accuracy  
-   - **Response:** Custom `403 Forbidden`  
-   - (WAF automatically filters sensitive fields like `card` or `password` from logs.)  
-4. Click **Save and Exit**
+### Task 1 — Simulate an Unmitigated Attack via Swagger UI (Before WAF)
 
-### Task 1.2: Traffic Generation and WAF Confirmation
+In this task you will simulate an XSS attack against the unprotected LLM endpoint using the interactive API documentation (Swagger UI).
+1. **Navigate to the Swagger UI**  
+   Open a browser tab and go to:  
+   `http://vllm-quantized.volt.thebizdevops.net/docs#/default/chat_completion_v1_inference_chat_completion_post`
 
-1. Use the [Test Tool](https://test-tool.sr.f5-cloud-demo.com).  
-   - Paste LB CNAME and **SEND ATTACKS** → vulnerable before WAF  
-   - Inject prompt via `/v1/chat/completions` → attack passes
-2. After enabling WAF → click **SEND ATTACKS** again  
-   - All attacks should be blocked
+2. **Access the Endpoint**  
+   Expand the Chat Completion endpoint (`/v1/inference/chat-completion`) in the Swagger UI.
 
-📸 *[Insert Screenshot 2: Test Tool Confirmation of Blocked WAF Attacks]*
+3. **Initiate Testing**  
+   Click the **Try it out** button.
 
-### Task 1.3: Review Security Analytics and MUD
+![Swagger Chat](images/swagger_chat.png)
 
-1. Navigate to **Dashboards → Security Dashboard**  
-2. Explore **Security Analytics → Attack details (e.g., Java injection)**  
-3. Use **Add to Blocked Clients** to apply **MUD** (ML-based user blocking).
+3. **Insert Malicious Payload**  
 
-📸 *[Insert Screenshot 3: Security Analytics Dashboard Showing Blocked Event]*
+   Copy and paste the following JSON payload into the **Request body**.  
+   This payload injects a simple XSS `<script>` into the `content` field to demonstrate the vulnerability:
+
+```json
+{
+  "model_id": "RedHatAI/Llama-3.2-1B-Instruct-quantized.w8a8",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What is F5 API security? <script>alert(\"XSS\")</script>",
+      "context": "Injection test"
+    }
+  ],
+  "sampling_params": {
+    "strategy": { "type": "greedy" },
+    "max_tokens": 50,
+    "repetition_penalty": 1,
+    "stop": ["</script>"]
+  },
+  "stream": false,
+  "logprobs": { "top_k": 0 }
+}
+```
+
+> Replace `model` and other fields with the values required by your deployment if different.
+4. **Execute the Attack**  
+   Click **Execute** in Swagger UI.
+   
+5. **Review Unmitigated Result**  
+   Inspect the **Server Response**. If the response body contains the injected `<script>` (or the script is rendered), the endpoint is vulnerable to XSS.
+
+![Swagger Chat Response](images/swagger_chat_response.png)
+---
+
+### Task 2 — Enable a WAF Policy on the F5 XC Load Balancer
+
+Attach a pre-built WAF policy to the HTTP Load Balancer fronting the vLLM service.
+
+1. **Navigate to Load Balancer Management**  
+   In the F5 Distributed Cloud Console, go to **Web App & API Protection → Load Balancers → HTTP Load Balancers** (under *Manage*).
+
+2. **Manage Configuration**  
+   Find the HTTP Load Balancer servicing the vLLM endpoint. Click the action menu (three dots `…`) in the *Action* column, then select **Manage Configuration**.
+
+3. **Edit Configuration**  
+   Click **Edit Configuration**.
+
+4. **Enable WAF**  
+   From the left navigation, select **Web Application Firewall**.
+
+5. **Select WAF Object**  
+   Toggle **Enable** for the Web Application Firewall, then choose the shared WAF object (for example `shared/api-lab-af`) from the WAF dropdown.
+
+   - **Note:** In lab environments, settings such as *Suspicious* or *Good Bot* are sometimes set to *Ignore* to reduce false positives.
+
+6. **Save Changes**  
+   Go to **Other Settings** (left navigation), then click **Save and Exit**.
+
+**Insert Screen Capture:** Add a screenshot here showing the WAF policy attached to the F5 XC Load Balancer.
+
+---
+
+### Task 3 — Simulate a Mitigated Attack via Swagger UI (After WAF)
+
+Verify the WAF policy successfully blocks the XSS injection.
+
+1. **Return to Swagger UI**  
+   Use the Swagger tab from Task 1 (or refresh the page):  
+   `http://vllm-quantized.volt.thebizdevops.net/docs#/default/chat_completion_v1_inference_chat_completion_post`
+
+2. **Access the Endpoint**  
+   Expand the `/v1/inference/chat-completion` endpoint and click **Try it out**.
+
+3. **Re-Execute the Attack**  
+   Paste the exact same malicious JSON payload used in Task 1 into the Request body.
+
+4. **Execute and Review Mitigated Result**  
+   Click **Execute**. Inspect the **Server Response**. The WAF should have intercepted and blocked the malicious script; you will typically see a block message or an altered response indicating the request was rejected or sanitized.
+
+**Insert Screen Capture:** Add a screenshot here of the mitigated Swagger response showing the WAF block message or sanitized output.
+
+---
+
+## Notes & Troubleshooting
+
+- If the block is not observed:
+  - Confirm the WAF policy is attached to the **correct** HTTP Load Balancer (matching host/path).
+  - Check policy precedence and any other policies that might override behavior.
+  - Review WAF logs and attack telemetry in the F5 XC Console to confirm detection events.
+  - Validate whether the WAF object is configured to **block** (not just log) for XSS rules.
+
+- For lab-friendly testing, consider using a non-production model and a low-impact payload. Use caution when testing production systems.
+
+---
+
+## Appendix — Example Minimal Request (cURL)
+
+Below is an example `curl` command that sends the same malicious payload directly to the inference endpoint (use only in controlled/test environments):
+
+```bash
+curl -X POST "http://vllm-quantized.volt.thebizdevops.net/v1/inference/chat-completion" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-example",
+    "messages": [{"role":"user","content":"<script>alert(\"XSS\")</script> Please summarize the above."}],
+    "max_tokens": 50
+  }'
+```
+
+---
+
+*End of document.*
+
+
+
 
 ---
 
