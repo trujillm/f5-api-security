@@ -219,9 +219,15 @@ Verify the WAF policy successfully blocks the XSS injection.
    Paste the exact same malicious JSON payload used in Task 1 into the Request body.
 
 4. **Execute and Review Mitigated Result**  
+
    Click **Execute**. Inspect the **Server Response**. The WAF should have intercepted and blocked the malicious script; you will typically see a block message or an altered response indicating the request was rejected or sanitized.
 
-**Insert Screen Capture:** Add a screenshot here of the mitigated Swagger response showing the WAF block message or sanitized output.
+![XSS Response](images/xss-response.png)
+
+5. **Check with event log from F5 Distributed Cloud Security Analytics**  
+
+![XSS Event](images/xss-event.png)
+
 
 ---
 
