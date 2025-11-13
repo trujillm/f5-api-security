@@ -390,10 +390,16 @@ This task verifies that the rate limiting policy is active and successfully bloc
    Navigate and expand the rate-limited endpoint (e.g., `/v1/inference/chat-completion`) and click **Try it out**.
 3. **Execute Rapid Requests:**  
    Click the **Execute** button more than 10 times within 1 minute.
+
 4. **Review Mitigated Result:**  
    Observe the **Server Response Body** for each execution:
    - Requests 1 through 10 should be processed successfully (`200 OK`).  
    - Requests 11 and subsequent requests within that minute duration should be blocked (e.g., returning a `429 Too Many Requests` status or a comparable block message).
 
-📸 *[Insert Screen Capture of Mitigated Swagger Response showing the blocking status (e.g., 429 error) after the 10th request]*
+![API rate limit test](images/API_rate_limit_test.png)
+
+5. **Review Dashboad**
+
+![API rate limit event](images/API_rate_limit_event.png)
+
 
