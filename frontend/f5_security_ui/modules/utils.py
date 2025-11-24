@@ -15,10 +15,12 @@ def data_url_from_file(uploaded_file) -> str:
 
 def get_vector_db_name(vector_db) -> str:
     """Extract display name from vector database object."""
-    if hasattr(vector_db, 'identifier'):
-        return vector_db.identifier
+    if hasattr(vector_db, 'vector_db_name'):
+        return vector_db.vector_db_name
     elif hasattr(vector_db, 'name'):
         return vector_db.name
+    elif hasattr(vector_db, 'identifier'):
+        return vector_db.identifier
     else:
         return str(vector_db)
 

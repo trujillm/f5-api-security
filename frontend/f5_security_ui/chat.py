@@ -4,6 +4,13 @@ import os
 from datetime import datetime
 from openai import OpenAI
 from modules.api import llama_stack_api
+from modules.utils import get_vector_db_name
+from constants import (
+    DEFAULT_TEMPERATURE,
+    DEFAULT_TOP_P, 
+    DEFAULT_MAX_TOKENS,
+    DEFAULT_REPETITION_PENALTY
+)
 
 st.set_page_config(
     page_title="Chat",
@@ -376,6 +383,9 @@ with st.sidebar:
             del st.session_state["reset_text_input"]
     
     
+    # Debug toggle (must be defined before vector DB logic)
+    debug_mode = st.toggle("🐛 Debug Mode", value=False, help="Show detailed processing information")
+    
     # Auto-select all available vector databases for RAG (hidden from UI)
     try:
         vector_dbs = llama_stack_api.get_llamastack_client().vector_dbs.list() or []
@@ -384,11 +394,22 @@ with st.sidebar:
             selected_vector_dbs = vector_db_names  # Auto-select all available
         else:
             selected_vector_dbs = []
+        
+        # Debug: Log vector database listing in sidebar
+        if debug_mode:
+            st.sidebar.markdown("#### 🔍 Vector Database Debug")
+            st.sidebar.json({
+                "vector_dbs_found": len(vector_dbs),
+                "vector_db_names": [get_vector_db_name(vdb) for vdb in vector_dbs] if vector_dbs else [],
+                "selected_vector_dbs": selected_vector_dbs
+            })
+            
     except Exception as e:
         selected_vector_dbs = []
-    
-    # Debug toggle
-    debug_mode = st.toggle("🐛 Debug Mode", value=False, help="Show detailed processing information")
+        # Debug: Log vector database listing error
+        if debug_mode:
+            st.sidebar.markdown("#### ❌ Vector Database Error")
+            st.sidebar.error(f"Error listing vector databases: {str(e)}")
 
 # System prompt for Demo Application
 system_prompt = """You are a helpful AI assistant for this demo application. You can help users with:
@@ -430,10 +451,10 @@ def process_chat_prompt(prompt, model, selected_vector_dbs, system_prompt):
     """Process chat prompt using Direct Mode RAG with sensible defaults."""
     
     # Sensible defaults for chat responses
-    temperature = 0.7      # Balanced creativity for helpful responses
-    top_p = 0.9           # Good diversity while staying focused
-    max_tokens = 1000     # Sufficient for detailed explanations
-    repetition_penalty = 1.1  # Slight penalty to avoid repetition
+    temperature = DEFAULT_TEMPERATURE      # Balanced creativity for helpful responses
+    top_p = DEFAULT_TOP_P                 # Good diversity while staying focused
+    max_tokens = DEFAULT_MAX_TOKENS       # Sufficient for detailed explanations
+    repetition_penalty = DEFAULT_REPETITION_PENALTY  # Slight penalty to avoid repetition
     
     # Add user message
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -452,9 +473,51 @@ def direct_process_prompt(prompt, model, selected_vector_dbs, system_prompt, tem
     
     # Step 1: RAG Query (if vector databases are available)
     prompt_context = None
+    
+    # Debug: Log vector database selection
+    debug_events_list.append({
+        "type": "vector_db_selection",
+        "timestamp": datetime.now().isoformat(),
+        "selected_vector_dbs": selected_vector_dbs,
+        "selected_count": len(selected_vector_dbs) if selected_vector_dbs else 0
+    })
+    
     if selected_vector_dbs:
         vector_dbs = llama_stack_api.get_llamastack_client().vector_dbs.list() or []
         vector_db_ids = [vector_db.identifier for vector_db in vector_dbs if get_vector_db_name(vector_db) in selected_vector_dbs]
+        
+        # Debug: Log available vector databases
+        debug_events_list.append({
+            "type": "available_vector_dbs",
+            "timestamp": datetime.now().isoformat(),
+            "total_vector_dbs": len(vector_dbs),
+            "matching_vector_db_ids": vector_db_ids,
+            "all_vector_dbs": [{"name": get_vector_db_name(vdb), "id": vdb.identifier} for vdb in vector_dbs]
+        })
+        
+        # Debug: Try to get vector database info for troubleshooting
+        try:
+            for vdb_id in vector_db_ids[:1]:  # Only check first one to avoid spam
+                # Note: LlamaStack doesn't have a direct way to list documents, 
+                # but we can try a very broad search to see if anything is stored
+                test_response = llama_stack_api.get_llamastack_client().tool_runtime.rag_tool.query(
+                    content="test query to check if database has content", 
+                    vector_db_ids=[vdb_id]
+                )
+                debug_events_list.append({
+                    "type": "vector_db_content_test",
+                    "timestamp": datetime.now().isoformat(),
+                    "vector_db_id": vdb_id,
+                    "test_query_result_length": len(test_response.content) if test_response.content else 0,
+                    "test_query_has_content": bool(test_response.content),
+                    "test_response_preview": (str(test_response.content[:100]) + "..." if test_response.content else "Empty")
+                })
+        except Exception as test_error:
+            debug_events_list.append({
+                "type": "vector_db_content_test_error",
+                "timestamp": datetime.now().isoformat(),
+                "error": str(test_error)
+            })
         
         if vector_db_ids:
             with st.spinner("🔍 Retrieving relevant F5 security documentation..."):
@@ -464,13 +527,21 @@ def direct_process_prompt(prompt, model, selected_vector_dbs, system_prompt, tem
                         vector_db_ids=list(vector_db_ids)
                     )
                     prompt_context = rag_response.content
+                    
+                    # Debug: Log detailed RAG response
                     debug_events_list.append({
                         "type": "f5_rag_query",
                         "timestamp": datetime.now().isoformat(),
                         "query": prompt,
                         "vector_dbs": selected_vector_dbs,
+                        "vector_db_ids_used": vector_db_ids,
                         "context_length": len(prompt_context) if prompt_context else 0,
-                        "context_preview": (str(prompt_context[:200]) + "..." if prompt_context else "None")
+                        "context_preview": (str(prompt_context[:200]) + "..." if prompt_context else "None"),
+                        "rag_response_type": type(rag_response).__name__,
+                        "rag_response_content_empty": not bool(prompt_context),
+                        "rag_response_raw": str(rag_response)[:500] + "..." if len(str(rag_response)) > 500 else str(rag_response),
+                        "rag_response_has_content_attr": hasattr(rag_response, 'content'),
+                        "rag_response_content_type": type(rag_response.content).__name__ if hasattr(rag_response, 'content') else "N/A"
                     })
                 except Exception as e:
                     # Robust error message handling
@@ -483,8 +554,25 @@ def direct_process_prompt(prompt, model, selected_vector_dbs, system_prompt, tem
                     debug_events_list.append({
                         "type": "f5_rag_error", 
                         "timestamp": datetime.now().isoformat(),
-                        "error": error_msg
+                        "error": error_msg,
+                        "vector_db_ids_attempted": vector_db_ids
                     })
+        else:
+            # Debug: No matching vector database IDs found
+            debug_events_list.append({
+                "type": "no_matching_vector_dbs",
+                "timestamp": datetime.now().isoformat(),
+                "selected_vector_dbs": selected_vector_dbs,
+                "available_vector_dbs": len(vector_dbs),
+                "message": "No vector database IDs matched the selected databases"
+            })
+    else:
+        # Debug: No vector databases selected
+        debug_events_list.append({
+            "type": "no_vector_dbs_selected",
+            "timestamp": datetime.now().isoformat(),
+            "message": "No vector databases were selected for RAG"
+        })
     
     # Step 2: Construct Enhanced Prompt with Context
     if prompt_context:
@@ -515,6 +603,15 @@ QUERY:
 - Include threat mitigation strategies
 - Reference F5 products and capabilities when relevant
 - Emphasize enterprise-grade security solutions"""
+
+    # Debug: Log the constructed enhanced prompt
+    debug_events_list.append({
+        "type": "enhanced_prompt_construction",
+        "timestamp": datetime.now().isoformat(),
+        "has_rag_context": bool(prompt_context),
+        "prompt_length": len(f5_enhanced_prompt),
+        "enhanced_prompt": f5_enhanced_prompt[:500] + "..." if len(f5_enhanced_prompt) > 500 else f5_enhanced_prompt
+    })
 
     with st.chat_message("assistant"):
         message_placeholder = st.empty()

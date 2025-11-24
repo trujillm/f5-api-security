@@ -11,6 +11,12 @@ sys.path.append('/app')
 # We'll use the RAG-style approach directly with llama_stack_api
 
 from modules.api import llama_stack_api
+from constants import (
+    DEFAULT_VECTOR_DB_NAME, 
+    DEFAULT_EMBEDDING_MODEL, 
+    DEFAULT_EMBEDDING_DIMENSION, 
+    DEFAULT_CHUNK_SIZE_TOKENS
+)
 
 
 def document_upload_page():
@@ -65,7 +71,7 @@ def status_section():
             
             for db in vector_dbs:
                 db_name = db.identifier if hasattr(db, 'identifier') else str(db)
-                if db_name == 'demo-vector-db':
+                if db_name == DEFAULT_VECTOR_DB_NAME:
                     demo_db = db
                     break
             
@@ -76,9 +82,9 @@ def status_section():
                 with st.expander("🗂️ Database Details", expanded=True):
                     st.json({
                         "database_id": f5_security_db.identifier if hasattr(f5_security_db, 'identifier') else str(f5_security_db),
-                        "embedding_model": "all-MiniLM-L6-v2",
-                        "embedding_dimension": 384,
-                        "chunk_size": 512,
+                        "embedding_model": DEFAULT_EMBEDDING_MODEL,
+                        "embedding_dimension": DEFAULT_EMBEDDING_DIMENSION,
+                        "chunk_size": DEFAULT_CHUNK_SIZE_TOKENS,
                         "status": "Active"
                     })
             else:
@@ -119,7 +125,7 @@ def status_section():
 def add_documents_to_vector_db(uploaded_files: List[Any]):
     """Automatically add documents to the F5 security vector database upon upload."""
     
-    vector_db_name = "demo-vector-db"
+    vector_db_name = DEFAULT_VECTOR_DB_NAME
     
     # Show initial upload success
     st.success(f"📄 Successfully uploaded {len(uploaded_files)} files")
@@ -153,8 +159,8 @@ def add_documents_to_vector_db(uploaded_files: List[Any]):
                 # Register new vector database
                 llama_stack_api.get_llamastack_client().vector_dbs.register(
                     vector_db_id=vector_db_name,
-                    embedding_dimension=384,
-                    embedding_model="all-MiniLM-L6-v2",
+                    embedding_dimension=DEFAULT_EMBEDDING_DIMENSION,
+                    embedding_model=DEFAULT_EMBEDDING_MODEL,
                     provider_id=vector_io_provider,
                 )
         except Exception as db_error:
@@ -186,7 +192,7 @@ def add_documents_to_vector_db(uploaded_files: List[Any]):
             llama_stack_api.get_llamastack_client().tool_runtime.rag_tool.insert(
                 vector_db_id=actual_vector_db_id,
                 documents=documents,
-                chunk_size_in_tokens=512,
+                chunk_size_in_tokens=DEFAULT_CHUNK_SIZE_TOKENS,
             )
         
         st.success(f"🎉 Documents successfully added to knowledge base!")
