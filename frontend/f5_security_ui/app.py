@@ -3,8 +3,8 @@ import streamlit as st
 def main():
     # Set page configuration
     st.set_page_config(
-        page_title="F5 AI Security",
-        page_icon="🛡️",
+        page_title="AI Chat Assistant",
+        page_icon="💬",
         layout="wide",
         initial_sidebar_state="expanded"
     )
@@ -53,7 +53,7 @@ def main():
     ]
     
     # Render navigation with our pages
-    pg = st.navigation({"F5 AI Security": nav_items}, expanded=True)
+    pg = st.navigation({"AI Chat Assistant": nav_items}, expanded=True)
     pg.run()
 
 
