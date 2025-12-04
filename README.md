@@ -276,8 +276,8 @@ curl -sS http://llamastack-f5-ai-security.apps.gpu-ai.bd.f5.com/v1/openai/v1/cha
 #### Test Chat Completion (Secured vLLM Endpoint)
 
 ```bash
-curl -sS http://vllm-quantized.volt.thebizdevops.net/v1/openai/v1/chat/completions   -H "Content-Type: application/json"   -d '{
-    "model": "RedHatAI/Llama-3.2-1B-Instruct-quantized.w8a8",
+curl -sS http://your-xc-endpoint.com/v1/openai/v1/chat/completions   -H "Content-Type: application/json"   -d '{
+    "model": "your-model-id",
     "messages": [{"role": "user", "content": "Say hello in one sentence."}],
     "max_tokens": 64,
     "temperature": 0

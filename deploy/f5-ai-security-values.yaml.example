@@ -147,8 +147,8 @@ llama-stack:
 
 # Default Chat Endpoint Configuration
 chatEndpoint:
-  # OpenAI-compatible endpoint URL for chat completions
-  url: "https://redhataillama-31-8b-instruct-quickstart-llms.apps.ai-dev02.kni.syseng.devcluster.openshift.com/v1"
+  # LlamaStack endpoint URL for chat completions
+  url: "http://llamastack:8321"  # Default to local LlamaStack (change to your external endpoint)
   # Model ID to use for chat completions
   modelId: "rhoai-llama-3-1-8b/redhataillama-31-8b-instruct"
   # API key for endpoints that require authentication (leave empty for public endpoints)

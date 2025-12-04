@@ -4,6 +4,10 @@ import os
 from datetime import datetime
 from typing import List, Dict, Any
 
+# Page config is now handled by app.py
+
+# CSS is now handled centrally by app.py
+
 # Add the ingestion service to the path
 sys.path.append('/app/f5_security_ui')
 sys.path.append('/app')
@@ -20,20 +24,18 @@ from constants import (
 
 
 def document_upload_page():
-    """Enhanced Document Upload Page with URL and File Upload support."""
+    """Unified Document Upload and Status Page."""
     
     st.markdown("### 📤 Document Ingestion")
     
+    # File upload section
+    file_upload_section()
     
+    # Add separator
+    st.markdown("---")
     
-    # Create tabs for different ingestion methods
-    tab1, tab2 = st.tabs(["📁 File Upload", "📊 Status"])
-    
-    with tab1:
-        file_upload_section()
-    
-    with tab2:
-        status_section()
+    # Status and document list section
+    status_section()
 
 
 def file_upload_section():
@@ -58,68 +60,74 @@ def file_upload_section():
 
 
 def status_section():
-    """Status and management section."""
-    
-    st.markdown("#### 📊 Vector Database Status")
+    """Status and document management section."""
     
     # Vector database information
     try:
         # Try to list vector databases, but handle API differences gracefully
         try:
             vector_dbs = llama_stack_api.get_llamastack_client().vector_dbs.list() or []
-            demo_db = None
-            
-            for db in vector_dbs:
-                db_name = db.identifier if hasattr(db, 'identifier') else str(db)
-                if db_name == DEFAULT_VECTOR_DB_NAME:
-                    demo_db = db
-                    break
-            
-            if demo_db:
-                st.success("✅ Vector Database is available")
-                
-                # Database details
-                with st.expander("🗂️ Database Details", expanded=True):
-                    st.json({
-                        "database_id": f5_security_db.identifier if hasattr(f5_security_db, 'identifier') else str(f5_security_db),
-                        "embedding_model": DEFAULT_EMBEDDING_MODEL,
-                        "embedding_dimension": DEFAULT_EMBEDDING_DIMENSION,
-                        "chunk_size": DEFAULT_CHUNK_SIZE_TOKENS,
-                        "status": "Active"
-                    })
-            else:
-                st.warning("⚠️ Vector Database not found")
-                st.info("The database will be created automatically when you upload your first document.")
             
             # All vector databases
+            st.markdown("#### 📚 Vector Databases")
             if vector_dbs:
-                st.markdown("#### 📚 All Available Vector Databases")
+                for db in vector_dbs:
+                    # Try to get a user-friendly name, fallback to identifier
+                    if hasattr(db, 'name') and db.name:
+                        display_name = db.name
+                    elif hasattr(db, 'identifier'):
+                        # If identifier looks like a UUID, try to find a more friendly name
+                        identifier = db.identifier
+                        if identifier.startswith('vs_') and len(identifier) > 20:
+                            # This looks like a UUID-style identifier, try to get a better name
+                            display_name = DEFAULT_VECTOR_DB_NAME  # Use the expected name
+                        else:
+                            display_name = identifier
+                    else:
+                        display_name = str(db)
+                    
+                    # Show both the display name and identifier for clarity
+                    if hasattr(db, 'identifier') and display_name != db.identifier:
+                        st.markdown(f"📄 **{display_name}** (`{db.identifier}`)")
+                    else:
+                        st.markdown(f"📄 {display_name}")
+                
+                # Show database details for the first/primary database
+                primary_db = None
                 for db in vector_dbs:
                     db_name = db.identifier if hasattr(db, 'identifier') else str(db)
-                    st.markdown(f"📄 {db_name}")
+                    if db_name == DEFAULT_VECTOR_DB_NAME:
+                        primary_db = db
+                        break
+                
+                # If no default found, use the first one
+                if not primary_db and vector_dbs:
+                    primary_db = vector_dbs[0]
+                
+                if primary_db:
+                    # Database details
+                    with st.expander("🗂️ Database Details", expanded=False):
+                        st.json({
+                            "database_id": primary_db.identifier if hasattr(primary_db, 'identifier') else str(primary_db),
+                            "embedding_model": DEFAULT_EMBEDDING_MODEL,
+                            "embedding_dimension": DEFAULT_EMBEDDING_DIMENSION,
+                            "chunk_size": DEFAULT_CHUNK_SIZE_TOKENS,
+                            "status": "Active"
+                        })
             else:
-                st.info("No vector databases found.")
+                st.info("📋 No vector databases found. The database will be created automatically when you upload your first document.")
                 
         except AttributeError as api_error:
             # Handle case where vector_dbs API is not available
-            st.info("📋 Vector database status checking not available with current API version")
-            st.info("The vector database will be created automatically when you upload documents.")
+            st.markdown("#### 📚 Vector Databases")
+            st.info("📋 Vector database status checking not available with current API version. The vector database will be created automatically when you upload documents.")
     
     except Exception as e:
+        st.markdown("#### 📚 Vector Databases")
         st.error(f"Error checking vector database status: {e}")
     
-    # Management actions
-    st.markdown("#### 🛠️ Management Actions")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        if st.button("🔄 Refresh Status", use_container_width=True):
-            st.rerun()
-    
-    with col2:
-        if st.button("🧪 Test Connection", use_container_width=True):
-            test_llamastack_connection()
+    # Display uploaded documents
+    display_uploaded_documents()
 
 
 def add_documents_to_vector_db(uploaded_files: List[Any]):
@@ -204,6 +212,149 @@ def add_documents_to_vector_db(uploaded_files: List[Any]):
 
 
 
+
+def get_uploaded_documents():
+    """Retrieve list of uploaded documents from vector databases."""
+    try:
+        # Get all vector databases
+        vector_dbs = llama_stack_api.get_llamastack_client().vector_dbs.list() or []
+        
+        documents = []
+        for vector_db in vector_dbs:
+            try:
+                # Try multiple approaches to find documents
+                search_queries = [
+                    "document source file",
+                    "metadata filename",
+                    "uploaded file",
+                    "pdf txt doc",
+                    "content source"
+                ]
+                
+                found_sources = set()
+                
+                for query in search_queries:
+                    try:
+                        search_response = llama_stack_api.get_llamastack_client().tool_runtime.rag_tool.query(
+                            content=query, 
+                            vector_db_ids=[vector_db.identifier]
+                        )
+                        
+                        # Extract document information from search results
+                        if hasattr(search_response, 'content') and search_response.content:
+                            # Parse the content to extract document sources
+                            content_items = search_response.content if isinstance(search_response.content, list) else [search_response.content]
+                            
+                            for item in content_items:
+                                if hasattr(item, 'text'):
+                                    text = item.text
+                                    # Look for various patterns that indicate source files
+                                    patterns = [
+                                        r'source[:\s]+([^\n\r,]+\.(?:pdf|txt|doc|docx|md|json|yaml))',
+                                        r'Source[:\s]+([^\n\r,]+\.(?:pdf|txt|doc|docx|md|json|yaml))',
+                                        r'Metadata:.*?source[\'"]?\s*:\s*[\'"]?([^\'",\n\r]+\.(?:pdf|txt|doc|docx|md|json|yaml))',
+                                        r'filename[:\s]+([^\n\r,]+\.(?:pdf|txt|doc|docx|md|json|yaml))',
+                                        r'file[:\s]+([^\n\r,]+\.(?:pdf|txt|doc|docx|md|json|yaml))'
+                                    ]
+                                    
+                                    import re
+                                    for pattern in patterns:
+                                        matches = re.findall(pattern, text, re.IGNORECASE)
+                                        for match in matches:
+                                            clean_source = match.strip().strip('\'"')
+                                            if clean_source and clean_source not in found_sources:
+                                                found_sources.add(clean_source)
+                                                documents.append({
+                                                    'name': clean_source,
+                                                    'vector_db': vector_db.identifier,
+                                                    'type': 'document',
+                                                    'status': 'indexed'
+                                                })
+                    except Exception:
+                        continue
+                        
+            except Exception as e:
+                # If we can't query this vector DB, skip it
+                continue
+        
+        # If no documents found through search but vector DB exists and has content, 
+        # add a generic entry to show that documents exist
+        if not documents and vector_dbs:
+            for vector_db in vector_dbs:
+                try:
+                    # Test if the vector DB has any content at all
+                    test_response = llama_stack_api.get_llamastack_client().tool_runtime.rag_tool.query(
+                        content="test", 
+                        vector_db_ids=[vector_db.identifier]
+                    )
+                    
+                    if (hasattr(test_response, 'content') and test_response.content and 
+                        any(hasattr(item, 'text') and item.text.strip() for item in 
+                            (test_response.content if isinstance(test_response.content, list) else [test_response.content]))):
+                        # Vector DB has content, add a generic document entry
+                        documents.append({
+                            'name': 'Uploaded Document (filename not detected)',
+                            'vector_db': vector_db.identifier,
+                            'type': 'document',
+                            'status': 'indexed'
+                        })
+                except Exception:
+                    continue
+        
+        return documents
+        
+    except Exception as e:
+        st.error(f"Error retrieving document list: {str(e)}")
+        return []
+
+def display_uploaded_documents():
+    """Display aesthetically pleasing list of uploaded documents."""
+    
+    st.markdown("---")
+    st.markdown("### 📚 Uploaded Documents")
+    
+    documents = get_uploaded_documents()
+    
+    if not documents:
+        st.info("📝 No documents uploaded yet. Upload some documents above to see them listed here.")
+        return
+    
+    st.markdown(f"**Total Documents**: {len(documents)}")
+    
+    # Create a nice display for each document
+    for i, doc in enumerate(documents):
+        with st.container():
+            col1, col2, col3 = st.columns([3, 1, 1])
+            
+            with col1:
+                # Document name with icon
+                if doc['name'].endswith('.pdf'):
+                    icon = "📄"
+                elif doc['name'].endswith(('.txt', '.md')):
+                    icon = "📝"
+                elif doc['name'].endswith(('.doc', '.docx')):
+                    icon = "📃"
+                else:
+                    icon = "📋"
+                
+                st.markdown(f"{icon} **{doc['name']}**")
+            
+            with col2:
+                # Show friendly name for vector DB
+                db_display = doc['vector_db']
+                if db_display.startswith('vs_') and len(db_display) > 20:
+                    db_display = DEFAULT_VECTOR_DB_NAME
+                st.markdown(f"🗄️ `{db_display}`")
+            
+            with col3:
+                if doc['status'] == 'indexed':
+                    st.markdown("✅ **Indexed**")
+                else:
+                    st.markdown("⏳ **Processing**")
+        
+        # Add a subtle separator between documents
+        if i < len(documents) - 1:
+            st.markdown("<hr style='margin: 0.5rem 0; border: none; border-top: 1px solid #e0e0e0;'>", unsafe_allow_html=True)
 
 def test_llamastack_connection():
     """Test connection to Llama Stack."""

@@ -77,7 +77,7 @@ Expected JSON output should show available models such as `Llama-3.2-1B-Instruct
 1. Navigate to **Multi-Cloud App Connect → HTTP Load Balancers**  
 2. Click **Add HTTP Load Balancer**
    - **Name:** `ai-inference-lb`  
-   - **Domain Name:** `vllm-quantized.volt.thebizdevops.net`
+   - **Domain Name:** `your-xc-endpoint.com`
 3. **Configure Origin Pool:**
    - Add Item → name the pool  
 4. **Configure Origin Server:**
@@ -98,7 +98,7 @@ Expected JSON output should show available models such as `Llama-3.2-1B-Instruct
 ### Verification of Inference Endpoint Access
 
 ```bash
-curl -sS http://vllm-quantized.volt.thebizdevops.net//v1/openai/v1/models | jq
+curl -sS http://your-xc-endpoint.com/v1/openai/v1/models | jq
 ```
 Expected Output:
 ```json
@@ -133,7 +133,7 @@ Expected Output:
 In this task you will simulate an XSS attack against the unprotected LLM endpoint using the interactive API documentation (Swagger UI).
 1. **Navigate to the Swagger UI**  
    Open a browser tab and go to:  
-   `http://vllm-quantized.volt.thebizdevops.net/docs#/default/chat_completion_v1_inference_chat_completion_post`
+   `http://your-xc-endpoint.com/docs#/default/chat_completion_v1_inference_chat_completion_post`
 
 2. **Access the Endpoint**  
    Expand the Chat Completion endpoint (`/v1/inference/chat-completion`) in the Swagger UI.
@@ -213,7 +213,7 @@ Verify the WAF policy successfully blocks the XSS injection.
 
 1. **Return to Swagger UI**  
    Use the Swagger tab from Task 1 (or refresh the page):  
-   `http://vllm-quantized.volt.thebizdevops.net/docs#/default/chat_completion_v1_inference_chat_completion_post`
+   `http://your-xc-endpoint.com/docs#/default/chat_completion_v1_inference_chat_completion_post`
 
 2. **Access the Endpoint**  
    Expand the `/v1/inference/chat-completion` endpoint and click **Try it out**.
@@ -251,7 +251,7 @@ Verify the WAF policy successfully blocks the XSS injection.
 Below is an example `curl` command that sends the same malicious payload directly to the inference endpoint (use only in controlled/test environments):
 
 ```bash
-curl -X 'POST' 'http://vllm-quantized.volt.thebizdevops.net/v1/inference/chat-completion' \
+curl -X 'POST' 'http://your-xc-endpoint.com/v1/inference/chat-completion' \
   -H 'Content-Type: application/json' \
   -d '{
         "model_id": "RedHatAI/Llama-3.2-1B-Instruct-quantized.w8a8",
@@ -281,14 +281,14 @@ An updated model inference service (KServe/vLLM) introduced a new, unapproved, o
 Verify that the unapproved endpoint is currently accessible before security controls are applied.
 
 1. Use a browser or `curl` to test the Shadow API endpoint:  
-   - **Shadow API:** `GET http://vllm-quantized.volt.thebizdevops.net/v1/version`  
+   - **Shadow API:** `GET http://your-xc-endpoint.com/v1/version`  
    - The response should return version information, proving that the Shadow API is currently accessible.
 
 
 ![Get Version API](images/get_version_api.png)
 
 2. *(Optional)* Use the Quickstart’s Swagger UI to confirm the endpoint is exposed:  
-   - **Swagger UI:** `http://vllm-quantized.volt.thebizdevops.net/docs`
+   - **Swagger UI:** `http://your-xc-endpoint.com/docs`
 
 ---
 
@@ -340,7 +340,7 @@ Enable API Inventory & Discovery on the Load Balancer fronting the inference end
 After enforcing the API spec, the Shadow API should now be blocked.
 
 1. Test using browser or `curl`:  
-   - `GET http://vllm-quantized.volt.thebizdevops.net/v1/version`
+   - `GET http://your-xc-endpoint.com/v1/version`
 2. The request should now be blocked, confirming that undocumented/unauthorized endpoints are prevented.
     ![Block 403](images/get_version_api_403.png)
 ---
@@ -355,7 +355,7 @@ Enforcing the API specification acts like a strict **security manifest** for a p
 ## ⚙️Use Case 3: Preventing Denial of Service (DoS) Attacks via Rate Limiting
 
 ### Scenario
-An LLM inference endpoint, running on OpenShift AI and exposed at [http://vllm-quantized.volt.thebizdevops.net](http://vllm-quantized.volt.thebizdevops.net), experiences performance degradation due to a high volume of requests from a single client source, potentially caused by accidental loops or intentional abuse.  
+An LLM inference endpoint, running on OpenShift AI and exposed at [http://your-xc-endpoint.com](http://your-xc-endpoint.com), experiences performance degradation due to a high volume of requests from a single client source, potentially caused by accidental loops or intentional abuse.  
 We will limit requests to a specific endpoint to **10 requests per client per minute**.
 
 **Selected Endpoint for Rate Limiting:** `/v1/inference/chat-completion`  
@@ -367,7 +367,7 @@ We will limit requests to a specific endpoint to **10 requests per client per mi
 This task demonstrates that without F5 XC rate limiting configured, the selected LLM inference endpoint will accept an unlimited number of requests from a single client.
 
 1. **Navigate to the Swagger URL:**  
-   Open a browser tab and navigate to [http://vllm-quantized.volt.thebizdevops.net/docs](http://vllm-quantized.volt.thebizdevops.net/docs).
+   Open a browser tab and navigate to [http://your-xc-endpoint.com/docs](http://your-xc-endpoint.com/docs).
 2. **Access the Target Endpoint:**  
 
    Within the Swagger page, navigate and expand the selected endpoint (e.g., `/v1/inference/chat-completion`). Click **Try it out**.
@@ -406,7 +406,7 @@ This task enables the **API Rate Limit** feature on the **F5 XC HTTP Load Balanc
 1. **Access Load Balancer Configuration:**  
    In the F5 Distributed Cloud Console, navigate to **Web App & API Protection → Load Balancers → HTTP Load Balancers** under the *Manage* section.
 2. **Manage and Edit Configuration:**  
-   Locate the HTTP Load Balancer serving `vllm-quantized.volt.thebizdevops.net`. Click the three dots (…) in the *Action* column, then select **Manage Configuration → Edit Configuration**.
+   Locate the HTTP Load Balancer serving `your-xc-endpoint.com`. Click the three dots (…) in the *Action* column, then select **Manage Configuration → Edit Configuration**.
 3. **Navigate to Common Security Controls:**  
    Using the left-hand navigation, click the **Common Security Controls** link.
 4. **Enable API Rate Limit:**  
@@ -442,7 +442,7 @@ This task enables the **API Rate Limit** feature on the **F5 XC HTTP Load Balanc
 This task verifies that the rate limiting policy is active and successfully blocks requests that exceed the defined threshold.
 
 1. **Return to Swagger UI:**  
-   Navigate to the API documentation URL (or refresh the page): [http://vllm-quantized.volt.thebizdevops.net/docs](http://vllm-quantized.volt.thebizdevops.net/docs).
+   Navigate to the API documentation URL (or refresh the page): [http://your-xc-endpoint.com/docs](http://your-xc-endpoint.com/docs).
 2. **Access the Target Endpoint:**  
    Navigate and expand the rate-limited endpoint (e.g., `/v1/inference/chat-completion`) and click **Try it out**.
 3. **Execute Rapid Requests:**  
