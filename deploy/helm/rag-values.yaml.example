@@ -1,0 +1,306 @@
+# RAG Stack Configuration Values
+# Copy this file to rag-values.yaml and customize the values
+# The rag-values.yaml file is ignored by git to prevent accidental commits
+
+# API Keys and Tokens
+# Set your API keys and tokens here
+# These will be used by the Helm chart during installation
+
+# Hugging Face Token (required for model downloads)
+# Get your token from: https://huggingface.co/settings/tokens
+# Set this in the llm-service.secret.hf_token field below
+
+# TAVILY Search API Key is configured in the llama-stack.secrets section below
+
+# LLM Service Configuration
+llm-service:
+  secret:
+    hf_token: ""
+    enabled: true
+
+# Global model configuration
+global:
+  models:
+    # Pre-configured LLM models
+    # To deploy the model, set the enabled flag to true
+    # update the tolearation, if the node does not require tolearation
+    # comment the toleration block
+    # For detailed model configuration visit the url of the `llm-service` helm chart at 
+    # https://github.com/rh-ai-quickstart/ai-architecture-charts/blob/main/llm-service/helm/values.yaml 
+
+    llama-3-2-1b-instruct:
+      id: meta-llama/Llama-3.2-1B-Instruct
+      enabled: false
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: Exists
+          effect: NoSchedule
+
+    llama-3-1-8b-instruct:
+      id: meta-llama/Llama-3.1-8B-Instruct
+      enabled: false
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: Exists
+          effect: NoSchedule
+
+    llama-3-2-1b-instruct-quantized:
+      id: RedHatAI/Llama-3.2-1B-Instruct-quantized.w8a8
+      enabled: false
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: Exists
+          effect: NoSchedule
+
+    llama-3-2-3b-instruct:
+      id: meta-llama/Llama-3.2-3B-Instruct
+      enabled: false
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: Exists
+          effect: NoSchedule
+
+    llama-3-3-70b-instruct:
+      id: meta-llama/Llama-3.3-70B-Instruct
+      enabled: false
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: Exists
+          effect: NoSchedule
+
+    llama-3-3-70b-instruct-quantization-fp8:
+      id: meta-llama/Llama-3.3-70B-Instruct
+      enabled: false
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: Exists
+          effect: NoSchedule
+
+    llama-guard-3-1b:
+      id: meta-llama/Llama-Guard-3-1B
+      enabled: false
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: Exists
+          effect: NoSchedule
+
+    llama-guard-3-8b:
+      id: meta-llama/Llama-Guard-3-8B
+      enabled: false
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: Exists
+          effect: NoSchedule
+
+    qwen-2-5-vl-3b-instruct:
+      id: Qwen/Qwen2.5-VL-3B-Instruct
+      enabled: false
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: Exists
+          effect: NoSchedule
+    
+    # To configure LlamaStack with remote llm, replace the id,
+    # url and apiToken value and set enabled to true
+
+    # remote-llm:
+    #   id: custom-model-id
+    #   url: https://custom-server-url/v1
+    #   apiToken: fake-token
+    #   enabled: false
+
+    # To deploy custom models on RHOAI use the following code snippet
+
+    # Example safety model configuration
+    # custom-llm:
+    #   id: meta-llama/Llama-3.2-1B-Instruct
+    #   enabled: true
+    #   device: "gpu"  # Options: "cpu", "gpu", "hpu"
+    #   resources:
+    #     limits:
+    #       nvidia.com/gpu: "1"
+    #   tolerations:
+    #   - key: "nvidia.com/gpu"
+    #     operator: Exists
+    #     effect: NoSchedule
+    #   args:
+    #   - --max-model-len
+    #   - "14336"
+    
+    # Example safety model configuration
+    # custom-safety-guard:
+    #   id: meta-llama/Llama-Guard-3-8B
+    #   enabled: true
+    #   registerShield: true
+    #   device: "gpu"
+    #   resources:
+    #     limits:
+    #       nvidia.com/gpu: "1"
+    #   tolerations:
+    #   - key: "nvidia.com/gpu"
+    #     operator: Exists
+    #     effect: NoSchedule
+
+  # MCP servers configuration
+  mcp-servers: {}
+
+# Database Configuration (pgvector)
+pgvector:
+  secret:
+    user: "postgres"
+    password: "rag_password"
+    dbname: "rag_blueprint"
+    host: "pgvector"
+    port: "5432"
+
+configure-pipeline:
+  minio:
+    secret:
+      user: minio_rag_user
+      password: minio_rag_password
+      host: minio
+      port: "9000"
+    
+      # Upload sample files to the minio bucket 
+    sampleFileUpload:
+      enabled: true
+      bucket: documents
+      urls: 
+      - https://raw.githubusercontent.com/rh-ai-quickstart/RAG/refs/heads/main/notebooks/Zippity_Zoo_Grand_Invention.pdf
+      - https://raw.githubusercontent.com/rh-ai-quickstart/RAG/refs/heads/main/notebooks/Zippity_Zoo_and_the_Town_of_Tumble_Town.pdf
+      - https://raw.githubusercontent.com/rh-ai-quickstart/RAG/refs/heads/main/notebooks/Zippity_Zoo_and_the_Town_of_Whispering_Willows.pdf
+
+# Llama Stack Configuration
+llama-stack:
+  secrets:
+    # TAVILY Search API Key for web search functionality
+    TAVILY_SEARCH_API_KEY: "Paste-your-key-here"
+    
+    # Add other API keys as needed
+    # OPENAI_API_KEY: "your_openai_key_here"
+    # ANTHROPIC_API_KEY: "your_anthropic_key_here"
+
+# Suggested Questions Configuration
+# These questions appear in the chat UI when users select a database
+# The key should match the vector_store_name (identifier) of the database
+# This configuration will be stored in a ConfigMap and injected as an environment variable
+suggestedQuestions:
+  hr-vector-db-v1-0:
+    - "What are the health insurance benefits offered?"
+    - "How many vacation days do employees get?"
+    - "What is the parental leave policy?"
+    - "What are the retirement benefits?"
+    - "How do I enroll in benefits?"
+    - "What is the employee assistance program?"
+  
+  legal-vector-db-v1-0:
+    - "What are the key contract terms?"
+    - "What is the liability clause?"
+    - "What are the termination conditions?"
+    - "What are the intellectual property rights?"
+    - "What is the dispute resolution process?"
+    - "What are the compliance requirements?"
+  
+  sales-vector-db-v1-0:
+    - "What is the sales process?"
+    - "How do I qualify leads?"
+    - "What are the pricing strategies?"
+    - "What is the commission structure?"
+    - "How do I handle customer objections?"
+    - "What are the territory assignments?"
+  
+  procurement-vector-db-v1-0:
+    - "What is the procurement process?"
+    - "How do I submit a purchase request?"
+    - "What are the approval requirements?"
+    - "Who are the approved vendors?"
+    - "What is the purchasing policy?"
+    - "How do I track my order?"
+  
+  techsupport-vector-db-v1-0:
+    - "How do I install CloudSync on Mac?"
+    - "How do I install CloudSync on Windows?"
+    - "How do I sync files between devices?"
+    - "How do I troubleshoot CloudSync sync issues?"
+    - "How do I install Linux on TechGear Pro Laptop?"
+    - "Where can I find video drivers for TechGear Pro?"
+
+# Ingestion Pipeline Configuration
+ingestion-pipeline:
+  pipelines:
+    # GitHub-based pipeline
+    hr-pipeline:
+      enabled: true
+      source: GITHUB
+      embedding_model: "all-MiniLM-L6-v2"
+      name: "hr-vector-db"
+      version: "1.0"
+      vector_store_name: "hr-vector-db-v1-0"
+      GITHUB:
+        url: https://github.com/rh-ai-quickstart/RAG.git
+        path: notebooks/hr
+        token: auth_token
+        branch: main
+
+    legal-pipeline:
+      enabled: true
+      source: GITHUB
+      embedding_model: "all-MiniLM-L6-v2"
+      name: "legal-vector-db"
+      version: "1.0"
+      vector_store_name: "legal-vector-db-v1-0"
+      GITHUB:
+        url: https://github.com/rh-ai-quickstart/RAG.git
+        path: notebooks/legal
+        token: auth_token
+        branch: main
+
+    sales-pipeline:
+      enabled: true
+      source: GITHUB
+      embedding_model: "all-MiniLM-L6-v2"
+      name: "sales-vector-db"
+      version: "1.0"
+      vector_store_name: "sales-vector-db-v1-0"
+      GITHUB:
+        url: https://github.com/rh-ai-quickstart/RAG.git
+        path: notebooks/sales
+        token: auth_token
+        branch: main
+
+    procurement-pipeline:
+      enabled: true
+      source: GITHUB
+      embedding_model: "all-MiniLM-L6-v2"
+      name: "procurement-vector-db"
+      version: "1.0"
+      vector_store_name: "procurement-vector-db-v1-0"
+      GITHUB:
+        url: https://github.com/rh-ai-quickstart/RAG.git
+        path: notebooks/procurement
+        token: auth_token
+        branch: main
+
+    techsupport-pipeline:
+      enabled: true
+      source: GITHUB
+      embedding_model: "all-MiniLM-L6-v2"
+      name: "techsupport-vector-db"
+      version: "1.0"
+      vector_store_name: "techsupport-vector-db-v1-0"
+      GITHUB:
+        url: https://github.com/rh-ai-quickstart/RAG.git
+        path: notebooks/techsupport
+        token: auth_token
+        branch: main
+
+# UI Configuration
+replicaCount: 1
+
+image:
+  repository: "quay.io/rh-ai-quickstart/llamastack-dist-ui"
+  pullPolicy: "Always"
+
+env:
+  - name: "LLAMA_STACK_ENDPOINT"
+    value: "http://llamastack:8321"

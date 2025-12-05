@@ -1,32 +1,43 @@
+# More info on playground configuration can be found here:
+# https://llama-stack.readthedocs.io/en/latest/playground
+
 FROM python:3.12-slim
 
-# Set working directory
+ARG IMAGE_TAG
 WORKDIR /app
+COPY . /app/
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+# Make sure IMAGE_TAG is set
+RUN if [ -z "$IMAGE_TAG" ]; then echo "IMAGE_TAG is not set"; exit 1; fi
 
-# Copy streamlit UI application
-COPY f5_security_ui/ /app/f5_security_ui/
+# Replace __LLAMASTACK_VERSION__ with actual version in pyproject.toml
+RUN sed -i "s/__LLAMASTACK_VERSION__/${IMAGE_TAG}/g" pyproject.toml
 
-# Set Python path
-ENV PYTHONPATH=/app
+# Install uv
+RUN pip install uv
 
-# Create streamlit config directory
-RUN mkdir -p /.streamlit
+# Set UV cache directory to a writable location
+ENV UV_CACHE_DIR=/app/.uv-cache
+ENV XDG_CACHE_HOME=/app/.cache
 
-# Expose port
+# Create cache directories with proper permissions
+RUN mkdir -p /app/.uv-cache /app/.cache && \
+    chmod -R 777 /app/.uv-cache /app/.cache
+
+# Install dependencies using uv
+RUN if [ -f "uv.lock" ]; then \
+        echo "Lockfile found, using frozen sync"; \
+        uv sync --frozen; \
+    else \
+        echo "Lockfile not found, creating new one"; \
+        uv sync; \
+    fi
+
+# Ensure all app files have proper ownership and permissions for non-root users
+RUN chown -R 1001:0 /app && \
+    chmod -R g+rwX /app
+
 EXPOSE 8501
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8501/_stcore/health || exit 1
-
-# Run streamlit UI
-CMD ["streamlit", "run", "f5_security_ui/app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true"]
+ENTRYPOINT ["uv", "run", "streamlit", "run", "/app/llama_stack_ui/distribution/ui/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
