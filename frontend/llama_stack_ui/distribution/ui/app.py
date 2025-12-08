@@ -10,7 +10,7 @@ def main():
     pages = {
         "Chat": ("page/playground/chat.py", "💬"),
         "Upload Documents": ("page/upload/upload.py", "📄"),
-        "Inspect": ("page/distribution/inspect.py", "🔍"),
+        "Settings": ("page/distribution/inspect.py", "⚙️"),
     }
 
     # Build navigation items dynamically

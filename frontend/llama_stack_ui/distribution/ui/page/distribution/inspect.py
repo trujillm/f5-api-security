@@ -17,7 +17,7 @@ def inspect_page():
     """
     Display a horizontal menu to select a resource and show its details.
     """
-    st.header("🔍 Inspect")
+    st.header("⚙️ Settings")
     options = [
         "Models",
         "Vector Databases"
