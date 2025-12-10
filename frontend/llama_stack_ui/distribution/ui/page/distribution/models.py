@@ -130,10 +130,15 @@ def models():
         st.info("No LLM models available from this endpoint.")
         return
 
-    # Create models info dictionary from filtered LLM models
-    models_info = {m.identifier: m.to_dict() for m in llm_models}
-
-    # Let user select and view a model
-    selected_model = st.selectbox("Select a model", list(models_info.keys()))
-    if selected_model:
-        st.json(models_info[selected_model], expanded=True)
+    # Display models in a table with single column
+    import pandas as pd
+    
+    # Create DataFrame with model identifiers
+    models_data = [{"Model Identifier": model.identifier} for model in llm_models]
+    df = pd.DataFrame(models_data)
+    
+    # Add row numbering starting from 1
+    df.index = df.index + 1
+    
+    # Display the table
+    st.dataframe(df, use_container_width=True, hide_index=False)
