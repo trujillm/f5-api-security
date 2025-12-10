@@ -113,9 +113,6 @@ def vector_dbs():
         # Show vector database creation UI
         _show_create_vector_db_ui()
     elif selected_vector_db and selected_vector_db != "":
-        # Show existing vector database details (only if not empty string)
-        st.json(vdb_info[selected_vector_db], expanded=True)
-        
         # Show existing documents in the database
         st.subheader(f"📄 Documents in '{selected_vector_db}'")
         _show_existing_documents_table(selected_vector_db, selected_vdb_obj)
