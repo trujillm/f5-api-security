@@ -23,8 +23,6 @@ VERSION ?= 0.2.22
 POSTGRES_USER ?= postgres
 POSTGRES_PASSWORD ?= rag_password
 POSTGRES_DBNAME ?= rag_blueprint
-MINIO_USER ?= minio_rag_user
-MINIO_PASSWORD ?= minio_rag_password
 # HF_TOKEN will be managed by the get_hf_token helper function
 RAG_CHART := rag
 TOLERATIONS_TEMPLATE=[{"key":"$(1)","effect":"NoSchedule","operator":"Exists"}]
@@ -55,8 +53,6 @@ define check_values_file
 				echo -e "$(GREEN)║  $(YELLOW)2. Add your Hugging Face token$(GREEN) (required for model downloads)           ║$(NC)"; \
 				echo -e "$(GREEN)║     $(NC)Get token from: $(BLUE)https://huggingface.co/settings/tokens$(GREEN)               ║$(NC)"; \
 				echo -e "$(GREEN)║                                                                          ║$(NC)"; \
-				echo -e "$(GREEN)║  $(YELLOW)3. (Optional)$(NC) Add TAVILY API key for web search functionality$(GREEN)           ║$(NC)"; \
-				echo -e "$(GREEN)║                                                                          ║$(NC)"; \
 				echo -e "$(GREEN)║  $(BLUE)📝 ACTION REQUIRED:$(GREEN)                                                     ║$(NC)"; \
 				echo -e "$(GREEN)║     $(NC)Open a new terminal window and edit the configuration file:$(GREEN)          ║$(NC)"; \
 				echo -e "$(GREEN)║     $(BLUE)nano rag-values.yaml$(GREEN)  or  $(BLUE)vim rag-values.yaml$(GREEN)                        ║$(NC)"; \
@@ -86,7 +82,6 @@ endef
 define validate_values_file
 	echo -e "$(BLUE)[INFO]$(NC) Validating configuration values..."; \
 	HF_TOKEN=$$(grep -A 2 "^llm-service:" "$(VALUES_FILE)" | grep "hf_token:" | sed 's/.*hf_token: *//' | tr -d '"' | tr -d ' '); \
-	LLAMA_STACK_TAVILY=$$(grep "TAVILY_SEARCH_API_KEY:" "$(VALUES_FILE)" 2>/dev/null | sed 's/.*TAVILY_SEARCH_API_KEY: *//' | tr -d '"' | tr -d ' '); \
 	UPDATED=0; \
 	if [ -z "$$HF_TOKEN" ] || [ "$$HF_TOKEN" = "" ]; then \
 		echo -e "$(YELLOW)[WARNING]$(NC) Hugging Face token is not set. Model downloads may fail."; \
@@ -99,20 +94,6 @@ define validate_values_file
 			UPDATED=1; \
 		else \
 			echo -e "$(YELLOW)[WARNING]$(NC) Hugging Face token not provided. Model downloads may fail."; \
-		fi; \
-		echo -e ""; \
-	fi; \
-	if [ -z "$$LLAMA_STACK_TAVILY" ] || [ "$$LLAMA_STACK_TAVILY" = "Paste-your-key-here" ]; then \
-		echo -e "$(YELLOW)[WARNING]$(NC) TAVILY search API key is not set. Web search will be disabled."; \
-		echo -e "$(BLUE)[INFO]$(NC) Get your key from: https://tavily.com/"; \
-		echo -e ""; \
-		read -p "Enter your TAVILY search API key (or press Enter to skip): " tavily_input; \
-		if [ -n "$$tavily_input" ]; then \
-			sed -i.bak "s/TAVILY_SEARCH_API_KEY:.*/TAVILY_SEARCH_API_KEY: \"$$tavily_input\"/" "$(VALUES_FILE)"; \
-			echo -e "$(GREEN)[SUCCESS]$(NC) TAVILY search API key saved to configuration."; \
-			UPDATED=1; \
-		else \
-			echo -e "$(YELLOW)[WARNING]$(NC) TAVILY search API key not provided. Web search will be disabled."; \
 		fi; \
 		echo -e ""; \
 	fi; \
@@ -131,10 +112,6 @@ helm_pgvector_args = \
     --set pgvector.secret.user=$(POSTGRES_USER) \
     --set pgvector.secret.password=$(POSTGRES_PASSWORD) \
     --set pgvector.secret.dbname=$(POSTGRES_DBNAME)
-
-helm_minio_args = \
-    --set minio.secret.user=$(MINIO_USER) \
-    --set minio.secret.password=$(MINIO_PASSWORD)
 
 helm_llm_service_args = \
     --set llm-service.secret.hf_token=$(HF_TOKEN) \
@@ -232,7 +209,7 @@ config: ## Show current configuration
 	@if [ -f "$(VALUES_FILE)" ]; then \
 		echo -e "  Configuration: Found"; \
 		echo -e "$(BLUE)[INFO]$(NC) Key settings from $(VALUES_FILE):"; \
-		grep -E "^(hf_token|tavily_search_api_key|TAVILY_SEARCH_API_KEY):" "$(VALUES_FILE)" 2>/dev/null || echo -e "  No API keys found"; \
+		grep -E "^(hf_token):" "$(VALUES_FILE)" 2>/dev/null || echo -e "  No API keys found"; \
 		echo -e "$(BLUE)[INFO]$(NC) Model configuration:"; \
 		grep -A 5 "global:" "$(VALUES_FILE)" 2>/dev/null | grep -E "(models|enabled)" || echo -e "  No models configured"; \
 	else \
@@ -251,7 +228,6 @@ init-config: ## Initialize configuration from example
 			echo -e "$(GREEN)[SUCCESS]$(NC) Created $(VALUES_FILE) from $(VALUES_EXAMPLE)"; \
 			echo -e "$(BLUE)[INFO]$(NC) Please edit $(VALUES_FILE) with your configuration:"; \
 			echo -e "  - llm-service.secret.hf_token: Your Hugging Face token"; \
-			echo -e "  - llama-stack.secrets.TAVILY_SEARCH_API_KEY: Your TAVILY search API key (optional)"; \
 			echo -e "  - global.models: Configure your LLM and safety models"; \
 			echo -e ""; \
 			echo -e "$(BLUE)[INFO]$(NC) You can edit it with: make edit-config"; \
@@ -336,14 +312,6 @@ configure-keys: ## Interactively configure API keys
 		echo -e "$(GREEN)[SUCCESS]$(NC) Hugging Face token saved to configuration."; \
 	else \
 		echo -e "$(YELLOW)[WARNING]$(NC) Hugging Face token not provided."; \
-	fi; \
-	echo -e ""; \
-	read -p "Enter your TAVILY search API key (or press Enter to skip): " tavily_input; \
-	if [ -n "$$tavily_input" ]; then \
-		sed -i.bak "s/TAVILY_SEARCH_API_KEY:.*/TAVILY_SEARCH_API_KEY: \"$$tavily_input\"/" "$(VALUES_FILE)"; \
-		echo -e "$(GREEN)[SUCCESS]$(NC) TAVILY search API key saved to configuration."; \
-	else \
-		echo -e "$(YELLOW)[WARNING]$(NC) TAVILY search API key not provided."; \
 	fi; \
 	echo -e ""; \
 	echo -e "$(GREEN)[SUCCESS]$(NC) Configuration updated."; \
@@ -499,21 +467,14 @@ install: ## Install the RAG deployment
 	@oc rollout status deploy/llamastack
 	@echo -e "$(GREEN)[SUCCESS]$(NC) $(RAG_CHART) installed successfully"
 
-# Install with TAVILY integration (deprecated - use values file instead)
-.PHONY: install-with-tavily
-install-with-tavily: check-deps validate-config ## Install with TAVILY search integration (deprecated)
-	@echo -e "$(YELLOW)[WARNING]$(NC) install-with-tavily is deprecated. Use values file approach instead."
-	@echo -e "$(BLUE)[INFO]$(NC) Please configure TAVILY in your $(VALUES_FILE) and use 'make install'"
-	@$(MAKE) install
-
 # Uninstall the deployment and clean up
 .PHONY: uninstall
 uninstall: ## Uninstall the RAG deployment and clean up resources
 	@if [ -z "$(NAMESPACE)" ]; then echo -e "$(RED)[ERROR]$(NC) NAMESPACE is required for uninstall"; exit 1; fi
 	@echo -e "$(BLUE)[INFO]$(NC) Uninstalling $(RAG_CHART) helm chart..."
 	@helm -n $(NAMESPACE) uninstall $(RAG_CHART)
-	@echo -e "$(BLUE)[INFO]$(NC) Removing pgvector and minio PVCs from $(NAMESPACE)..."
-	@oc get pvc -n $(NAMESPACE) -o custom-columns=NAME:.metadata.name | grep -E '^(pg|minio)-data' | xargs -I {} oc delete pvc -n $(NAMESPACE) {} ||:
+	@echo -e "$(BLUE)[INFO]$(NC) Removing pgvector PVCs from $(NAMESPACE)..."
+	@oc get pvc -n $(NAMESPACE) -o custom-columns=NAME:.metadata.name | grep -E '^pg-data' | xargs -I {} oc delete pvc -n $(NAMESPACE) {} ||:
 	@echo -e "$(BLUE)[INFO]$(NC) Deleting remaining pods in namespace $(NAMESPACE)..."
 	@oc delete pods -n $(NAMESPACE) --all
 	@echo -e "$(YELLOW)[INFO]$(NC) Checking for any remaining resources in namespace $(NAMESPACE)..."
