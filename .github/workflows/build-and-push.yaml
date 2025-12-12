@@ -40,4 +40,4 @@ jobs:
             quay.io/rh-ai-quickstart/f5-security-ui:${{ steps.version.outputs.f5_tag }}
             quay.io/rh-ai-quickstart/f5-security-ui:latest
           build-args: |
-            IMAGE_TAG=0.2.23
+            LLAMASTACK_VERSION=0.2.23

@@ -3,16 +3,15 @@
 
 FROM python:3.12-slim
 
-ARG IMAGE_TAG=0.2.23
+ARG LLAMASTACK_VERSION=0.2.23
 WORKDIR /app
 COPY . /app/
 
-# IMAGE_TAG defaults to 0.2.23 but can be overridden with --build-arg IMAGE_TAG=<version>
-RUN echo "Using LlamaStack version: $IMAGE_TAG"
+# LLAMASTACK_VERSION defaults to 0.2.23 but can be overridden with --build-arg LLAMASTACK_VERSION=<version>
+RUN echo "Using LlamaStack version: $LLAMASTACK_VERSION"
 
 # Replace __LLAMASTACK_VERSION__ with actual LlamaStack library version in pyproject.toml
-# Note: IMAGE_TAG contains the LlamaStack version for Python dependencies
-RUN sed -i "s/__LLAMASTACK_VERSION__/${IMAGE_TAG}/g" pyproject.toml
+RUN sed -i "s/__LLAMASTACK_VERSION__/${LLAMASTACK_VERSION}/g" pyproject.toml
 
 # Install uv
 RUN pip install uv
