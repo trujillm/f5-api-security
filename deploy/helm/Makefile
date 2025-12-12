@@ -148,15 +148,12 @@ help: ## Show this help message
 	@echo -e "  health        - Check health of all services"
 	@echo -e ""
 	@echo -e "$(GREEN)Development Targets:$(NC)"
-	@echo -e "  dev           - Start development environment"
 	@echo -e "  validate      - Validate Helm chart"
 	@echo -e "  validate-config - Validate configuration values"
 	@echo -e "  monitor       - Monitor deployment status"
 	@echo -e "  config        - Show current configuration"
 	@echo -e ""
 	@echo -e "$(GREEN)Management Targets:$(NC)"
-	@echo -e "  backup        - Backup PVCs and secrets"
-	@echo -e "  restore       - Restore from backup"
 	@echo -e "  clean         - Clean up all resources including namespace"
 	@echo -e "  init-config   - Initialize configuration from example"
 	@echo -e "  configure-keys - Interactively configure API keys"
@@ -269,17 +266,6 @@ namespace:
 	@oc project $(NAMESPACE) &> /dev/null ||:
 	@echo -e "$(GREEN)[SUCCESS]$(NC) Namespace $(NAMESPACE) is ready"
 
-# Development targets
-.PHONY: dev
-dev: ## Start development environment
-	@if [ -z "$(NAMESPACE)" ]; then echo -e "$(RED)[ERROR]$(NC) NAMESPACE is required for dev"; exit 1; fi
-	@$(MAKE) check-deps
-	@$(MAKE) validate-config
-	@echo -e "$(BLUE)[INFO]$(NC) Starting RAG development environment..."
-	@$(call check_values_file)
-	@$(MAKE) install
-	@echo -e "$(GREEN)[SUCCESS]$(NC) Development environment started"
-
 # Validation targets
 .PHONY: validate
 validate: check-deps ## Validate Helm chart before installation
@@ -349,24 +335,6 @@ health: ## Check health of all services
 	@echo -e ""
 	@echo -e "$(BLUE)[INFO]$(NC) Checking routes..."
 	@oc get routes -n $(NAMESPACE)
-
-# Backup and restore targets
-.PHONY: backup
-backup: ## Backup PVCs and secrets
-	@if [ -z "$(NAMESPACE)" ]; then echo -e "$(RED)[ERROR]$(NC) NAMESPACE is required for backup"; exit 1; fi
-	@echo -e "$(BLUE)[INFO]$(NC) Creating backup of PVCs and secrets..."
-	@mkdir -p backups/$(NAMESPACE)
-	@oc get pvc -n $(NAMESPACE) -o yaml > backups/$(NAMESPACE)/pvcs.yaml
-	@oc get secrets -n $(NAMESPACE) -o yaml > backups/$(NAMESPACE)/secrets.yaml
-	@echo -e "$(GREEN)[SUCCESS]$(NC) Backup created in backups/$(NAMESPACE)/"
-
-.PHONY: restore
-restore: ## Restore from backup
-	@if [ -z "$(NAMESPACE)" ]; then echo -e "$(RED)[ERROR]$(NC) NAMESPACE is required for restore"; exit 1; fi
-	@echo -e "$(BLUE)[INFO]$(NC) Restoring from backup..."
-	@oc apply -f backups/$(NAMESPACE)/pvcs.yaml
-	@oc apply -f backups/$(NAMESPACE)/secrets.yaml
-	@echo -e "$(GREEN)[SUCCESS]$(NC) Restore completed"
 
 # Cleanup targets
 .PHONY: clean
