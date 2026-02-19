@@ -65,6 +65,17 @@ This quickstart shows how to protect AI inference endpoints on Red Hat OpenShift
 
 - Regular user for default deployment; cluster admin for advanced configurations (e.g. F5 XC integration).
 
+### Document management
+
+  - Documents can be uploaded directly through the UI:
+
+  - Supported formats
+    - **PDF documents:** Security policies, manuals, and reports
+    - **Text files:** Plain text documents
+
+    Navigate to **Settings → Vector Databases** to create vector databases and upload documents.
+
+
 ## Deploy
 
 ### Prerequisites
@@ -147,14 +158,21 @@ oc delete project f5-ai-security
 
 ## References
 
+- **Make commands:**
+
+  ```bash
+  make help             # Show all available commands
+  make install          # Deploy the application
+  make uninstall        # Remove the application
+  make clean            # Clean up all resources including namespace
+  make logs             # Show logs for all pods
+  make monitor          # Monitor deployment status
+  make validate-config  # Validate configuration values
+  ```
+
 - [F5 Distributed Cloud](https://www.f5.com/cloud)
 - [OpenShift AI](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self_managed)
 - [KServe](https://kserve.github.io/website/)
-
-## Technical details
-
-- **Document management:** PDF and text files can be uploaded in the UI. Use **Settings → Vector Databases** to create vector databases and upload documents.
-- **Make commands:** `make help` | `make install` | `make uninstall` | `make clean` | `make logs` | `make monitor` | `make validate-config`
 
 ## Tags
 
