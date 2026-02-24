@@ -127,7 +127,7 @@ The 70B model is not required for initial testing. Llama-Guard-3-8B is optional.
    ```bash
    curl -sS http://llamastack-<NAMESPACE>.<YOUR_OPENSHIFT_CLUSTER>.com/v1/openai/v1/chat/completions \
      -H "Content-Type: application/json" \
-     -d '{"model": "remote-llm/RedHatAI/Llama-3.2-1B-Instruct-quantized.w8a8", "messages": [{"role": "user", "content": "Say hello in one sentence."}], "max_tokens": 64, "temperature": 0}' | jq
+     -d '{"model": "<MODEL_ID>", "messages": [{"role": "user", "content": "Say hello in one sentence."}], "max_tokens": 64, "temperature": 0}' | jq
    ```
    For the secured vLLM endpoint, use your route and model ID in the same request format.
 
