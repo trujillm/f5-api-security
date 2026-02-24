@@ -54,8 +54,6 @@ This AI quickstart shows how to protect AI inference endpoints on Red Hat® Open
 - **Embedding-only**: CPU is sufficient for `all-MiniLM-L6-v2`.
 - **Cluster resources**: minimum 8 vCPUs, 32 GB RAM, 100 GB disk for model weights and vector database.
 
-<!-- TODO: verify CPU/RAM/disk values against your actual tested environment -->
-
 ### Minimum software requirements
 
 - OpenShift Client CLI ([oc](https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/cli_tools/openshift-cli-oc#installing-openshift-cli))
@@ -63,7 +61,6 @@ This AI quickstart shows how to protect AI inference endpoints on Red Hat® Open
 - Red Hat OpenShift AI 2.16+ (tested with 2.22)
 - Helm CLI
 
-<!-- TODO: verify the OpenShift AI version matches your tested environment -->
 - Optional: [huggingface-cli](https://huggingface.co/docs/huggingface_hub/guides/cli), [Hugging Face token](https://huggingface.co/settings/tokens), [jq](https://stedolan.github.io/jq/) for example scripts
 
 ### Required user permissions
@@ -110,11 +107,49 @@ The 70B model is not required for initial testing. Llama-Guard-3-8B is optional.
    ```bash
    cp rag-values.yaml.example rag-values.yaml
    vim rag-values.yaml   # or your preferred editor
-   make install NAMESPACE=f5-ai-security
+   ```
+
+   **Deploying Models Locally** — In `rag-values.yaml`, enable the following models by setting `enabled: true`:
+
+   - `llama-3-2-1b-instruct-quantized` (RedHatAI/Llama-3.2-1B-Instruct-quantized.w8a8)
+   - `llama-3-2-3b-instruct` (meta-llama/Llama-3.2-3B-Instruct)
+
+       ```yaml
+       global:
+         models:
+           # 1 GPU, ~2–3 GB VRAM (w8a8 quantized)
+           llama-3-2-1b-instruct-quantized:
+             id: RedHatAI/Llama-3.2-1B-Instruct-quantized.w8a8
+             enabled: true
+
+           # 1 GPU, ~6–8 GB VRAM (FP16)
+           llama-3-2-3b-instruct:
+             id: meta-llama/Llama-3.2-3B-Instruct
+             enabled: true
+       ```
+       > **Note:** If your GPU node has a taint (e.g., `nvidia.com/gpu`), you must specify the corresponding toleration in the model configuration for pods to be scheduled on that node. See `rag-values.yaml` for toleration block examples.
+
+   **Deploying a Remote LLM** — In `rag-values.yaml`, enable a remote LLM model by setting `enabled: true` and supplying the URL and API token:
+
+   - `remoteLLM` (<MODEL_ORG>/<MODEL_ID>)
+       
+       ```yaml
+       global:
+         models:
+           # No local GPU required (runs on remote server)
+           remoteLLM:
+             id: <MODEL_ID>
+             url: <MODEL_SERVER_URL>
+             apiToken: <API_TOKEN>
+             enabled: true
+       ```
+
+   ```bash
+   make install NAMESPACE=<NAMESPACE>
    ```
 
    The Makefile checks dependencies (helm, oc), creates the namespace, updates Helm dependencies, and installs the chart. Success looks like:
-   ```
+   ```bash
    [SUCCESS] rag installed successfully
    ```
 
@@ -135,7 +170,7 @@ The 70B model is not required for initial testing. Llama-Guard-3-8B is optional.
    - **Step 2:** [Deployment and Configuration of F5 Distributed Cloud](docs/f5_xc_deployment.md)
    - **Step 3:** [Security Use Cases and Testing](docs/securing_model_inference_use_cases.md)
 
-**Application access:** Get the route with `oc get route -n <namespace>`, open the URL in a browser, and configure LLM settings (XC URL, model ID, API key) in the web UI.
+**Application access:** Get the route with `oc get route -n <NAMESPACE>`, open the URL in a browser, and configure LLM settings (XC URL, model ID, API key) in the web UI.
 
 ### Delete
 
@@ -143,13 +178,13 @@ Remove the quickstart from the cluster:
 
 ```bash
 cd f5-api-security/deploy/helm
-make uninstall NAMESPACE=f5-ai-security
+make uninstall NAMESPACE=<NAMESPACE>
 ```
 
 This uninstalls the Helm release and removes pods, services, routes, and the pgvector PVC. To delete the namespace:
 
 ```bash
-oc delete project f5-ai-security
+oc delete project <NAMESPACE>
 ```
 
 ## References
@@ -182,8 +217,6 @@ Documents can be uploaded directly through the UI.
 Navigate to **Settings → Vector Databases** to create vector databases and upload documents.
 
 ## Tags
-
-<!-- TODO: verify the Industry tag matches your target audience -->
 
 - **Title:** Secure model inference with F5 Distributed Cloud API Security
 - **Description:** Protect AI inference endpoints on OpenShift AI with F5 XC WAAP: WAF, API spec enforcement, shadow API prevention, and rate limiting.
